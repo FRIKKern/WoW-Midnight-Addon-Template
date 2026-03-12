@@ -1,0 +1,93 @@
+site_name: WoW Addon Development Guide
+site_description: Comprehensive World of Warcraft addon development documentation for Patch 12.0+ (Midnight)
+site_url: https://wow-addon-docs.example.com
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Reference:
+    - TOC File Format: toc-format.md
+    - Lua API: lua-api.md
+    - Events System: events.md
+    - Frames & Widgets: frames-widgets.md
+    - Security Model: security.md
+  - Midnight 12.0:
+    - What Changed: midnight.md
+    - Coding Patterns: midnight-patterns.md
+    - Cutting Edge: cutting-edge.md
+  - Better Addons:
+    - Building Better: better-addons.md
+    - Blizzard Systems: blizzard-systems.md
+    - Code Patterns: better-patterns.md
+    - Tutorials: enhancement-tutorials.md
+  - AI Coding Guide:
+    - Overview: ai-coding-guide.md
+    - API Cheat Sheet: api-cheatsheet.md
+    - Common Pitfalls: pitfalls.md
+    - Code Templates: code-templates.md
+    - AI Prompt Templates: ai-prompts.md
+  - "Beyond Intentions": beyond-intentions.md
+  - Resources: resources.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com
+  generator: false

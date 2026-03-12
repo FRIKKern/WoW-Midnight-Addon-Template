@@ -1,0 +1,45 @@
+:root {
+  --wow-gold: #ffd100;
+  --wow-purple: #9d4dbb;
+  --wow-blue: #0070dd;
+  --wow-green: #1eff00;
+  --wow-gray: #9d9d9d;
+  --wow-epic: #a335ee;
+}
+
+/* Custom heading styling */
+.md-typeset h1 {
+  color: var(--wow-gold);
+  font-weight: 700;
+}
+
+/* Code block improvements */
+.md-typeset code {
+  font-size: 0.85em;
+}
+
+/* Admonition customization for WoW quality colors */
+.md-typeset .admonition.tip {
+  border-color: var(--wow-green);
+}
+
+.md-typeset .admonition.warning {
+  border-color: var(--wow-gold);
+}
+
+.md-typeset .admonition.danger {
+  border-color: #ff4444;
+}
+
+/* Table styling */
+.md-typeset table:not([class]) th {
+  background-color: rgba(157, 77, 187, 0.15);
+}
+
+/* WoW quality color classes */
+.wow-poor { color: var(--wow-gray); }
+.wow-common { color: #ffffff; }
+.wow-uncommon { color: var(--wow-green); }
+.wow-rare { color: var(--wow-blue); }
+.wow-epic { color: var(--wow-epic); }
+.wow-legendary { color: #ff8000; }
