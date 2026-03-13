@@ -36,6 +36,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Starter Template: starter-template.md
   - Reference:
     - TOC File Format: toc-format.md
     - Lua API: lua-api.md
