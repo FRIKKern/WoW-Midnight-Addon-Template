@@ -20,7 +20,7 @@ When you need to look up specific API details beyond your core knowledge (exact 
 
 ---
 
-## CRITICAL: Functions AI Gets Wrong (Anti-Hallucination Guide)
+## CRITICAL: Anti-Hallucination Guide
 
 **STOP and check this list before writing ANY code.** These are the most common mistakes AI makes when generating WoW addon code.
 
@@ -28,9 +28,23 @@ When you need to look up specific API details beyond your core knowledge (exact 
 
 | WRONG (Deprecated) | CORRECT (Use Instead) |
 |---|---|
-| `GetSpellInfo()` | `C_Spell.GetSpellInfo(spellID)` — returns a SpellInfo table |
+| `GetSpellInfo()` | `C_Spell.GetSpellInfo(spellID)` — returns a SpellInfo table, NOT multiple values |
+| `GetSpellCooldown()` | `C_Spell.GetSpellCooldown(spellID)` or `C_Spell.GetSpellCooldownDuration(spellID)` |
+| `GetSpellTexture()` | `C_Spell.GetSpellTexture(spellID)` |
+| `IsSpellKnown()` | `C_Spell.IsSpellDataCached()` and `C_SpellBook.IsSpellBookItemKnown()` |
 | `GetItemInfo()` | `C_Item.GetItemInfo(itemID)` — returns an ItemInfo table |
 | `GetAddOnInfo()` | `C_AddOns.GetAddOnInfo(indexOrName)` |
+| `GetMouseFocus()` | `GetMouseFoci()` — returns a table |
+| `ActionHasRange()` | `C_ActionBar.IsActionInRange()` |
+| `IsUsableAction()` | `C_ActionBar.IsUsableAction()` |
+| `GetActionCooldown()` | `C_ActionBar.GetActionCooldown()` |
+| `GetActionTexture()` | `C_ActionBar.GetActionTexture()` |
+| `InterfaceOptions_AddCategory()` | `Settings.RegisterAddOnCategory()` |
+| `InterfaceOptionsFrame_OpenToCategory()` | `Settings.OpenToCategory()` |
+| `EasyMenu()` / `UIDropDownMenu_*` | `MenuUtil.CreateContextMenu()` |
+| `SetMinResize()` / `SetMaxResize()` | `Frame:SetResizeBounds(minW, minH, maxW, maxH)` |
+| `CombatLogGetCurrentEventInfo()` | Gone. No replacement for raw combat log parsing |
+| `CombatLogAddFilter()` / `CombatLogResetFilter()` | Removed entirely |
 
 ### Functions That DO NOT EXIST in WoW Lua
 
@@ -42,17 +56,20 @@ When you need to look up specific API details beyond your core knowledge (exact 
 | `io.open()` / `io.*` | **DOES NOT EXIST.** No filesystem access. Use SavedVariables for persistence. |
 | `os.time()` / `os.*` | **DOES NOT EXIST.** Use `GetTime()` for game time or `GetServerTime()` for epoch time. |
 
-### Events That Changed in 12.0 Midnight
+### Events Changed/Removed in 12.0 Midnight
 
-| Event | Status |
+| Event/API | Status |
 |---|---|
-| `COMBAT_LOG_EVENT_UNFILTERED` | **REMOVED for addon access in 12.0 Midnight.** Addons can NO LONGER read raw combat log data. This is part of the Secret Values system. Do NOT register for this event. |
+| `COMBAT_LOG_EVENT_UNFILTERED` | Still fires but payload is **Secret Values** in restricted contexts (encounters, M+, PvP). Effectively useless for addon logic. |
+| `SendAddonMessage()` in instances | **Blocked** during M+, PvP, and boss encounters. Check `C_ChatInfo.InChatMessagingLockdown()` first. |
 
 ### Other Common AI Mistakes
 
 - **Do NOT use `string.format()`** as a method — WoW Lua does not support `("text"):format()`. Use `format()` or `string.format()` as a function call.
-- **Do NOT use Lua 5.2+ features** — no `goto`, no bitwise operators (`&`, `|`, `~`), no `_ENV`, no `\z` in strings. WoW uses **Lua 5.1 only**. Use the `bit` library for bitwise operations.
+- **Do NOT use Lua 5.2+ features** — no `goto`, no bitwise operators (`&`, `|`, `~`), no `_ENV`, no `\z` in strings, no integer division (`//`). WoW uses **Lua 5.1 only**. Use the `bit` library for bitwise operations.
 - **Do NOT assume C_ functions return the same values as their deprecated equivalents** — many C_ namespace functions return structured tables instead of multiple return values.
+- **Do NOT use `table.wipe()`** — the function is `wipe()` (global, not in table library).
+- **Do NOT use `tinsert()`/`tremove()`** — use `table.insert()` and `table.remove()`.
 
 ---
 
@@ -97,6 +114,17 @@ end
 
 **NEVER use if/elseif chains for event handling.** The dispatch table pattern is O(1) and maintainable.
 
+**Modern alternative** — `EventUtil.ContinueOnAddOnLoaded()` (added 10.2):
+```lua
+EventUtil.ContinueOnAddOnLoaded(addonName, function()
+    -- Fires when this addon's ADDON_LOADED triggers
+    -- SavedVariables are available here
+    ns.db = MyAddonDB or CopyTable(ns.defaults)
+    MyAddonDB = ns.db
+end)
+```
+This is syntactic sugar over ADDON_LOADED. Use it for simple addons; use the dispatch table for complex addons with many events.
+
 ### 3. Combat Lockdown Checks — ALWAYS Before Frame Modification
 
 ```lua
@@ -134,12 +162,14 @@ end
 - Use `C_Item.GetItemInfo()` not `GetItemInfo()`
 - Use `C_AddOns.GetAddOnInfo()` not `GetAddOnInfo()`
 - Use `C_Timer.After()` not custom OnUpdate timers for simple delays
+- Use `C_ActionBar.*` not `GetAction*()` / `IsUsableAction()`
 
 ### 6. No Global Variables
 
 - **NEVER** create global variables except SavedVariables declared in the TOC file
 - **ALWAYS** use `local` for all variables and functions
 - Store shared state in the `ns` (namespace) table: `ns.myData = {}`
+- The only permitted globals: `SLASH_MYADDON1`, `SlashCmdList["MYADDON"]`, and SavedVariables
 
 ### 7. No Table Creation in Hot Paths
 
@@ -147,14 +177,12 @@ end
 -- WRONG: Creates garbage every frame
 frame:SetScript("OnUpdate", function(self, elapsed)
     local data = {}  -- BAD! New table every frame
-    -- ...
 end)
 
 -- RIGHT: Reuse tables
 local data = {}
 frame:SetScript("OnUpdate", function(self, elapsed)
     wipe(data)  -- Reuse existing table
-    -- ...
 end)
 ```
 
@@ -162,28 +190,101 @@ end)
 
 ## WoW 12.0 Midnight Specific Rules
 
-These constraints are unique to the Midnight expansion and override any pre-12.0 patterns you may know.
+These constraints are unique to the Midnight expansion and override any pre-12.0 patterns.
+
+### Secret Values System
+
+In Midnight, during M+/PvP/encounters/combat, many APIs return **secret values** — opaque containers that CANNOT be:
+- Compared (`if health < 100` → ERROR)
+- Used in arithmetic (`health / maxHealth` → ERROR)
+- Used as table keys
+- Tested for truthiness
+- Stored in SavedVariables (converted to nil)
+
+Secret values CAN be:
+- Stored in variables
+- Passed to widget setters (`StatusBar:SetValue()`, `FontString:SetText()`)
+- Concatenated with strings
+- Checked with `issecretvalue(val)` → true/false
+- Displayed via `ColorCurve:Evaluate()` and `Cooldown:SetCooldownFromDurationObject()`
+- Used with `Region:SetAlphaFromBoolean()` and `Region:SetVertexColorFromBoolean()`
+
+**Always guard combat code:**
+```lua
+local value = UnitHealth("target")
+if issecretvalue(value) then
+    -- Use widget-safe display path
+    healthBar:SetValue(UnitHealthPercent("target"))
+else
+    -- Can do math/conditionals freely
+    local pct = value / UnitHealthMax("target")
+end
+```
+
+**What is NOT secret** (always readable):
+- Player's own health/power (`UnitHealthMax("player")` is non-secret)
+- Player secondary resources (Combo Points, Holy Power, Soul Shards, Chi, Runes, Arcane Charges, Essence)
+- `UnitIsUnit()` comparisons with target/focus/mouseover/softenemy
+- Profession and Skyriding spells
+- Whitelisted auras: Maelstrom Weapon, Ebon Might, Void Metamorphosis, Collapsing Star
+- Whitelisted cooldowns: Second Wind, combat resurrections, Skyriding abilities
+
+**Key Secret Values APIs:**
+```lua
+issecretvalue(val)                           -- Is this value a secret?
+issecrettable(tbl)                           -- Does table contain secrets?
+scrubsecretvalues(...)                       -- Replace secrets with nil
+hasanysecretvalues(tbl)                      -- Check if table has any secrets
+C_Secrets.HasSecretRestrictions()            -- Are restrictions currently active?
+C_Secrets.ShouldUnitAuraBeSecret(auraID)     -- Will this aura be secret?
+C_Secrets.ShouldSpellCooldownBeSecret(spellID) -- Will this cooldown be secret?
+C_CombatLog.IsCombatLogRestricted()          -- Is combat log restricted?
+```
+
+**Restriction detection:**
+```lua
+-- Events
+ADDON_RESTRICTION_CHANGED  -- Fires when restriction state changes
+
+-- Enums
+Enum.AddOnRestrictionType  -- Combat, Encounter, ChallengeMode, PvPMatch, Map
+Enum.AddOnRestrictionState -- Inactive, Activating, Active
+```
 
 ### Visual-Only Addon Model
-- Addons can **ONLY modify visual presentation** in 12.0
+- Addons can **ONLY modify visual presentation** of secure frames in 12.0
 - The secure UI is a "black box" — addons cannot read or modify functional behavior
 - You must **skin Blizzard containers**, not replace them
 - Custom UIs that replace Blizzard frames are no longer viable for secure content
 
-### Secret Values System
-- **No access to raw combat data** — the Secret Values system prevents addons from reading exact damage/healing numbers
-- `COMBAT_LOG_EVENT_UNFILTERED` is **REMOVED** for addon access
-- `CombatLogGetCurrentEventInfo()` is **NOT AVAILABLE** to addons
-- Design addons that work with the information Blizzard explicitly exposes through supported APIs
-
 ### Instance Communication Restrictions
-- **No addon channel communication inside instances** (dungeons, raids, battlegrounds)
-- `C_ChatInfo.SendAddonMessage()` is blocked in instanced content
+- **No addon channel communication inside instances** during encounters
+- `C_ChatInfo.SendAddonMessage()` is blocked — check `C_ChatInfo.InChatMessagingLockdown()` first
 - Design features to work without real-time addon-to-addon communication in group content
+- Pattern: Queue messages, flush on `ENCOUNTER_END`
+
+### CLEU Status
+COMBAT_LOG_EVENT_UNFILTERED still fires but `CombatLogGetCurrentEventInfo()` returns Secret Values during restricted contexts. Use unit events instead:
+- `UNIT_HEALTH` for health changes
+- `UNIT_AURA` for buff/debuff tracking
+- `UNIT_SPELLCAST_SUCCEEDED` for spell casts
+- `UNIT_POWER_UPDATE` for power changes
+- `UnitIsDeadOrGhost()` for death detection
+
+### Damage Meter Data
+- Blizzard native `C_DamageMeter` API provides server-validated data
+- `C_DamageMeter.GetAvailableCombatSessions()` / `GetCombatSessionFromID()` / `IsDamageMeterAvailable()`
+- Details! and other meters are visual skins over this API
+- `/combatlog` disk file for Warcraft Logs is unaffected
+
+### Boss Mod Architecture
+- Boss mods now reformat Blizzard's native Boss Timeline HUD
+- Private Aura integration for custom audio alerts
+- `ENCOUNTER_START` / `ENCOUNTER_END` events still functional
+- `UNIT_SPELLCAST_SUCCEEDED` still works for boss cast detection
 
 ### Interface Number
 - **Always use `120001`** for the Interface field in TOC files
-- This is WoW 12.0.1 Midnight
 
 ---
 
@@ -191,44 +292,48 @@ These constraints are unique to the Midnight expansion and override any pre-12.0
 
 ### TOC File Format
 
-The TOC (Table of Contents) file defines addon metadata and file loading order.
-
-- **Interface number for WoW 12.0.1 (Midnight): `120001`**
-- Format: `## Field: Value` for metadata, `#` for comments, plain lines for Lua/XML file paths
-- Key metadata fields:
-  - `## Interface: 120001` — required, declares compatible game version
-  - `## Title: My Addon` — displayed in addon list
-  - `## Notes: Description here` — tooltip description
-  - `## Author: Name`
-  - `## Version: 1.0.0`
-  - `## Category: Combat` — addon category (added 11.1.0)
-  - `## Group: MyAddonSuite` — groups related addons together (added 11.1.0)
-  - `## IconTexture: Interface\\Icons\\INV_Misc_QuestionMark` — addon icon (added 10.1.0)
-  - `## SavedVariables: MyAddonDB` — account-wide saved variables
-  - `## SavedVariablesPerCharacter: MyAddonCharDB` — per-character saved variables
-  - `## Dependencies: Blizzard_SharedXML` — required dependencies (addon won't load without them)
-  - `## OptionalDeps: LibStub, Ace3` — optional dependencies (load order hint)
-  - `## LoadOnDemand: 1` — don't load at startup, load via C_AddOns.LoadAddOn()
-  - `## AddonCompartmentFunc: MyAddon_OnAddonCompartmentClick` — minimap compartment click handler
-  - `## X-CustomField: value` — custom metadata fields
-- Per-file directives (11.1.5+): `MyFile.lua [AllowLoadGameType mainline]`
-
-Example TOC:
 ```
 ## Interface: 120001
 ## Title: My Addon
 ## Notes: A cool addon for Midnight
 ## Author: Developer
-## Version: 1.0.0
+## Version: @project-version@
 ## Category: Combat
+## Group: MyAddonSuite
 ## IconTexture: Interface\Icons\INV_Misc_QuestionMark
 ## SavedVariables: MyAddonDB
+## SavedVariablesPerCharacter: MyAddonCharDB
+## Dependencies: Blizzard_SharedXML
+## OptionalDeps: LibStub, Ace3
+## LoadOnDemand: 1
+## AddonCompartmentFunc: MyAddon_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: MyAddon_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: MyAddon_OnAddonCompartmentLeave
 ## X-License: MIT
+## X-Curse-Project-ID: 123456
+## X-WoWI-ID: 12345
+## X-Wago-ID: abc123
 
+# Libraries (loaded first)
+embeds.xml
+
+# Addon files
 Init.lua
 Core.lua
 UI.lua
+Config.lua
 ```
+
+**Key metadata fields:**
+- `## Interface: 120001` — required, declares compatible game version
+- `## Category: Combat` — addon category (added 11.1.0). Values: Combat, Appearance, Chat, Social, Map, Inventory, Quests, Boss Encounters, Professions, Auction House, Arena, Battleground, PvP, Miscellaneous
+- `## Group: MyAddonSuite` — groups related addons together (added 11.1.0)
+- `## AddonCompartmentFunc:` — minimap compartment click handler (function name, must be global)
+- Per-file directives (11.1.5+): `MyFile.lua [AllowLoadGameType mainline]`
+
+**Multi-version TOC (for addons supporting multiple game versions):**
+Create separate TOC files: `MyAddon_Mainline.toc`, `MyAddon_Classic.toc`, `MyAddon_Cata.toc`
+Or use packager's `-S` flag with a single TOC and conditional blocks.
 
 ### Lua Environment
 
@@ -236,7 +341,7 @@ WoW uses **Lua 5.1** with a sandboxed environment.
 
 **Available:**
 - Base functions: `pairs`, `ipairs`, `next`, `select`, `type`, `tostring`, `tonumber`, `unpack`, `pcall`, `xpcall`, `error`, `assert`, `rawget`, `rawset`, `rawequal`, `setmetatable`, `getmetatable`
-- `string` library (all functions)
+- `string` library (all functions) — also callable as `strsub()`, `strfind()`, `strmatch()`, etc.
 - `table` library: `table.insert`, `table.remove`, `table.sort`, `table.concat`, `table.getn`
 - `math` library (**trig functions use degrees, not radians**)
 - `bit` library: `bit.band`, `bit.bor`, `bit.bxor`, `bit.bnot`, `bit.lshift`, `bit.rshift`
@@ -250,6 +355,7 @@ WoW uses **Lua 5.1** with a sandboxed environment.
 **Key Global Functions:**
 - `CreateFrame(frameType [, name, parent, template, id])` — create UI frames
 - `GetTime()` — game time in seconds (float)
+- `GetServerTime()` — epoch time (integer)
 - `print(...)` — output to default chat frame
 - `format(formatString, ...)` — string.format shortcut
 - `strsplit(delimiter, str [, pieces])` — split string
@@ -260,14 +366,8 @@ WoW uses **Lua 5.1** with a sandboxed environment.
 - `Mixin(target, ...)` — copy methods from mixins into target
 - `CreateFromMixins(...)` — create new table with mixed-in methods
 - `hooksecurefunc([table,] funcName, hookFunc)` — post-hook without taint
-- `InCombatLockdown()` — returns true if player is in combat (restricted actions blocked)
-
-**Addon Namespace Pattern:**
-```lua
--- Available in every file of the addon, shared namespace
-local addonName, ns = ...
-```
-Always use this pattern. `addonName` is the folder name string, `ns` is a shared private table across all addon files.
+- `InCombatLockdown()` — returns true if player is in combat
+- `issecretvalue(val)` — check if value is a secret (12.0+)
 
 ### C_ Namespace APIs
 
@@ -276,29 +376,51 @@ WoW organizes most modern APIs under `C_` namespaces (260+ total). Key ones:
 - **C_Timer:**
   - `C_Timer.After(seconds, callback)` — one-shot delay
   - `C_Timer.NewTicker(seconds, callback [, iterations])` — repeating timer, returns ticker (cancel with `ticker:Cancel()`)
-  - `C_Timer.NewTimer(seconds, callback)` — one-shot, returns timer handle (cancel with `timer:Cancel()`)
+  - `C_Timer.NewTimer(seconds, callback)` — one-shot, returns timer handle
+
+- **C_Spell:**
+  - `C_Spell.GetSpellInfo(spellID)` — returns SpellInfo table: `{ name, iconID, castTime, minRange, maxRange, spellID }`
+  - `C_Spell.GetSpellCooldown(spellID)` — returns CooldownInfo table
+  - `C_Spell.GetSpellCooldownDuration(spellID)` — returns duration object (secret-safe)
+  - `C_Spell.GetSpellTexture(spellID)` — returns icon texture path
+  - `C_Spell.IsSpellDataCached(spellID)` — check if spell data is loaded
+
+- **C_Item:**
+  - `C_Item.GetItemInfo(itemID)` — returns ItemInfo table
+  - `C_Item.IsItemDataCached(itemID)` — check if item data is loaded
+  - `C_Item.RequestLoadItemData(itemID)` — request async load
 
 - **C_ChatInfo:**
   - `C_ChatInfo.RegisterAddonMessagePrefix(prefix)` — register for addon messages
   - `C_ChatInfo.SendAddonMessage(prefix, message, chatType [, target])` — send addon message
+  - `C_ChatInfo.InChatMessagingLockdown()` — check if messaging is restricted
 
-- **C_Map:** Map/zone information
-- **C_Item:** Item info queries
-- **C_Spell:** Spell info queries
-- **C_AddOns:** Addon management (LoadAddOn, GetAddOnInfo, etc.)
+- **C_UnitAuras:**
+  - `C_UnitAuras.GetAuraDataByIndex(unit, index [, filter])` — returns AuraData table
+  - `C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)` — returns AuraData table
+  - `C_UnitAuras.GetPlayerAuraBySpellID(spellID)` — returns AuraData or nil
+
+- **C_AddOns:** `GetAddOnInfo()`, `LoadAddOn()`, `IsAddOnLoaded()`
 - **C_Container:** Bag/container operations
-- **C_UnitAuras:** Aura/buff/debuff queries
+- **C_Map:** Map/zone information
 - **C_EncodingUtil:** Base64 encode/decode
+- **C_DamageMeter:** Native damage meter data
+- **C_EncounterTimeline:** Raid encounter timeline/mechanics
+- **C_Secrets:** Secret values detection and whitelisting (18 functions)
+- **C_Housing / C_HousingDecor:** Player housing system (12.0+)
 
 ### Event System
-
-WoW addons are event-driven. Frames receive events.
 
 **Registration:**
 ```lua
 frame:RegisterEvent("EVENT_NAME")
 frame:UnregisterEvent("EVENT_NAME")
 frame:SetScript("OnEvent", function(self, event, ...) end)
+```
+
+Also available in 12.0:
+```lua
+Frame:RegisterEventCallback(event, callback)  -- Callback-based, no frame needed
 ```
 
 **Lifecycle Events (in order):**
@@ -312,39 +434,14 @@ frame:SetScript("OnEvent", function(self, event, ...) end)
 - `PLAYER_REGEN_ENABLED` — left combat (execute queued protected actions here)
 - `ENCOUNTER_START` — boss encounter began (encounterID, encounterName, difficultyID, groupSize)
 - `ENCOUNTER_END` — boss encounter ended (encounterID, encounterName, difficultyID, groupSize, success)
+- `ADDON_RESTRICTION_CHANGED` — restriction state changed (12.0+)
 
 **Unit Events:**
 - `UNIT_HEALTH` — unit health changed (unitToken)
 - `UNIT_AURA` — unit auras changed (unitToken, updateInfo)
 - `UNIT_POWER_UPDATE` — unit power changed (unitToken, powerType)
 - `PLAYER_TARGET_CHANGED` — player changed target
-
-**Event Dispatch Table Pattern (ALWAYS use this):**
-```lua
-local eventHandlers = {}
-
-function eventHandlers:ADDON_LOADED(loadedAddon)
-    if loadedAddon ~= addonName then return end
-    -- Initialize
-    self:UnregisterEvent("ADDON_LOADED")
-end
-
-function eventHandlers:PLAYER_LOGIN()
-    -- Setup
-end
-
-local eventFrame = CreateFrame("Frame")
-eventFrame:SetScript("OnEvent", function(self, event, ...)
-    local handler = eventHandlers[event]
-    if handler then
-        handler(self, ...)
-    end
-end)
-
-for event in pairs(eventHandlers) do
-    eventFrame:RegisterEvent(event)
-end
-```
+- `UNIT_SPELLCAST_SUCCEEDED` — a unit completed a spell cast
 
 ### Frame and Widget System
 
@@ -374,6 +471,7 @@ frame:ClearAllPoints() -- always clear before re-anchoring
 - `frame:SetFrameStrata("HIGH")` / `frame:SetFrameLevel(n)`
 - `frame:EnableMouse(bool)` / `frame:SetMovable(bool)` / `frame:RegisterForDrag("LeftButton")`
 - `frame:SetScript("OnClick", func)` / `frame:SetScript("OnEnter", func)` / `frame:SetScript("OnLeave", func)`
+- `frame:SetResizeBounds(minW, minH, maxW, maxH)` — replaced SetMinResize/SetMaxResize
 
 **Texture Methods:**
 ```lua
@@ -392,44 +490,20 @@ fs:SetTextColor(1, 1, 1)
 fs:SetJustifyH("LEFT") -- LEFT, CENTER, RIGHT
 ```
 
-**XML UI Definition:**
-```xml
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Frame name="MyFrame" parent="UIParent" frameStrata="MEDIUM">
-    <Size x="200" y="100"/>
-    <Anchors>
-      <Anchor point="CENTER"/>
-    </Anchors>
-    <Layers>
-      <Layer level="BACKGROUND">
-        <Texture parentKey="bg" setAllPoints="true">
-          <Color r="0" g="0" b="0" a="0.5"/>
-        </Texture>
-      </Layer>
-      <Layer level="OVERLAY">
-        <FontString parentKey="title" inherits="GameFontNormal" text="My Addon"/>
-      </Layer>
-    </Layers>
-    <Scripts>
-      <OnLoad method="OnLoad"/>
-    </Scripts>
-  </Frame>
-</Ui>
+**StatusBar (12.0 secret-safe):**
+```lua
+local bar = CreateFrame("StatusBar", nil, parent)
+bar:SetMinMaxValues(0, 1)
+bar:SetValue(UnitHealthPercent("target"))  -- accepts secret values
+bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+bar:SetTimerDuration(duration, direction)  -- self-updating timer bar (12.0+)
 ```
 
-**Virtual Templates and Mixin Pattern:**
+**Cooldown Display (12.0 secret-safe):**
 ```lua
-MyMixin = {}
-function MyMixin:Init(name)
-    self.name = name
-end
-function MyMixin:GetName()
-    return self.name
-end
-
--- Usage
-local obj = CreateFromMixins(MyMixin)
-obj:Init("Test")
+local cd = CreateFrame("Cooldown", nil, parent, "CooldownFrameTemplate")
+cd:SetCooldownFromDurationObject(durationObj)          -- from C_Spell.GetSpellCooldownDuration
+cd:SetCooldownFromExpirationTime(expTime, dur, mod)    -- alternative
 ```
 
 ### Security Model
@@ -439,42 +513,18 @@ obj:Init("Test")
 - `TargetUnit`, `AssistUnit`, `FocusUnit`
 - `UseAction`, `UseContainerItem`
 - `SetAttribute` on secure frames
-- Creating/modifying secure frame attributes
+- `frame:Show()` / `frame:Hide()` on protected Blizzard frames
 
 **Taint System:**
 - All addon code execution is "tainted" (insecure)
 - Blizzard UI code is "secure"
 - Tainted code cannot call protected functions or modify secure frames
 - `hooksecurefunc` creates post-hooks that don't taint the original
-
-**Combat Lockdown Pattern:**
-```lua
-local pendingActions = {}
-
-local function ExecuteOrQueue(action)
-    if InCombatLockdown() then
-        table.insert(pendingActions, action)
-    else
-        action()
-    end
-end
-
-function eventHandlers:PLAYER_REGEN_ENABLED()
-    for _, action in ipairs(pendingActions) do
-        action()
-    end
-    wipe(pendingActions)
-end
-```
+- Hooks cannot be unhooked — persist until UI reload
 
 **Hardware Event Requirements:**
 - Casting spells and targeting require a hardware event (mouse click, key press)
 - Cannot be triggered from timers, OnUpdate, or event handlers alone
-
-**WoW Midnight (12.0) Secure UI Model:**
-- "Black box" secure UI: addons can ONLY modify **visual presentation** of secure frames
-- Cannot read or modify the functional behavior of secure UI elements
-- Significantly more restrictive than previous expansions
 
 ### Slash Commands
 
@@ -485,7 +535,7 @@ SlashCmdList["MYADDON"] = function(msg)
     local cmd, rest = strsplit(" ", msg, 2)
     cmd = (cmd or ""):lower()
     if cmd == "config" then
-        -- open config
+        Settings.OpenToCategory(ns.categoryID)
     elseif cmd == "reset" then
         -- reset
     else
@@ -528,6 +578,87 @@ end
 
 Variables are automatically saved by the game client on logout, `/reload`, and disconnect.
 
+### Settings API (Modern Options Panel)
+
+```lua
+-- In Config.lua
+local addonName, ns = ...
+
+local function RegisterSettings()
+    local category, layout = Settings.RegisterVerticalLayoutCategory(addonName)
+    ns.categoryID = category:GetID()
+
+    -- Checkbox
+    do
+        local variable = "enabled"
+        local name = "Enable Addon"
+        local tooltip = "Toggle the addon on/off"
+        local defaultValue = true
+        local setting = Settings.RegisterAddOnSetting(category, variable, variable, ns.db, type(defaultValue), name, defaultValue)
+        Settings.CreateCheckbox(category, setting, tooltip)
+    end
+
+    -- Slider
+    do
+        local variable = "scale"
+        local name = "UI Scale"
+        local tooltip = "Adjust the scale of addon frames"
+        local defaultValue = 1.0
+        local minValue, maxValue, step = 0.5, 2.0, 0.1
+        local setting = Settings.RegisterAddOnSetting(category, variable, variable, ns.db, type(defaultValue), name, defaultValue)
+        local options = Settings.CreateSliderOptions(minValue, maxValue, step)
+        Settings.CreateSlider(category, setting, options, tooltip)
+    end
+
+    Settings.RegisterAddOnCategory(category)
+end
+
+EventUtil.ContinueOnAddOnLoaded(addonName, RegisterSettings)
+```
+
+### Addon Compartment (Minimap Button)
+
+In the TOC file:
+```
+## AddonCompartmentFunc: MyAddon_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: MyAddon_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: MyAddon_OnAddonCompartmentLeave
+```
+
+In Lua (these must be global functions):
+```lua
+function MyAddon_OnAddonCompartmentClick(addonName, buttonName)
+    Settings.OpenToCategory(ns.categoryID)
+end
+
+function MyAddon_OnAddonCompartmentEnter(addonName, menuButtonFrame)
+    GameTooltip:SetOwner(menuButtonFrame, "ANCHOR_LEFT")
+    GameTooltip:SetText("MyAddon")
+    GameTooltip:AddLine("Click to open settings", 1, 1, 1)
+    GameTooltip:Show()
+end
+
+function MyAddon_OnAddonCompartmentLeave(addonName, menuButtonFrame)
+    GameTooltip:Hide()
+end
+```
+
+### ScrollBox / DataProvider (Modern List UI)
+
+```lua
+local scrollBox = CreateFrame("Frame", nil, parent, "WowScrollBoxList")
+local scrollBar = CreateFrame("EventFrame", nil, parent, "MinimalScrollBar")
+local view = CreateScrollBoxListLinearView()
+view:SetElementExtent(24)  -- row height
+view:SetElementInitializer("MyRowTemplate", function(frame, data)
+    frame.text:SetText(data.name)
+end)
+ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
+local dataProvider = CreateDataProvider()
+dataProvider:InsertTable(myDataArray)
+scrollBox:SetDataProvider(dataProvider)
+```
+
 ### Performance Best Practices
 
 1. **Avoid table creation in OnUpdate** — reuse tables, avoid `{}` in hot paths
@@ -541,142 +672,17 @@ Variables are automatically saved by the game client on logout, `/reload`, and d
        -- do work
    end)
    ```
-3. **Cache globals as locals:**
+3. **Cache globals as locals** for hot paths:
    ```lua
    local pairs = pairs
-   local ipairs = ipairs
    local format = format
    local GetTime = GetTime
-   local CreateFrame = CreateFrame
    ```
 4. **Prefer `C_Timer.After` over OnUpdate** for simple delays
 5. **Prefer events over polling** — register for specific events instead of checking in OnUpdate
-6. **Unregister one-time events** after handling them (like ADDON_LOADED)
+6. **Unregister one-time events** after handling them
 7. **Use `wipe(t)`** instead of `t = {}` to reuse table memory
-8. **Use event dispatch table** for O(1) event handling (never if/elseif chains)
-9. **Use Mixin pattern** for composition over inheritance
-10. **Use `hooksecurefunc`** for post-hooking Blizzard functions without causing taint
-
-### Reference Addon Repositories
-
-For studying real-world patterns:
-- https://github.com/DeadlyBossMods/DeadlyBossMods
-- https://github.com/Tercioo/Details-Damage-Meter
-- https://github.com/WeakAuras/WeakAuras2
-- https://github.com/BigWigsMods/BigWigs
-- https://github.com/Tercioo/Plater-Nameplates
-
-### Documentation URLs
-
-For looking up specific APIs:
-- Primary API reference: https://warcraft.wiki.gg/wiki/World_of_Warcraft_API
-- Events list: https://warcraft.wiki.gg/wiki/Events
-- Widget API: https://warcraft.wiki.gg/wiki/Widget_API
-- TOC format: https://warcraft.wiki.gg/wiki/TOC_format
-- Security model: https://warcraft.wiki.gg/wiki/Secure_Execution_and_Tainting
-
----
-
-## Template Generation Rules
-
-When asked to create a new addon, you MUST generate a **complete, working addon** — never snippets or partial code.
-
-### Every addon MUST include:
-
-1. **A complete `.toc` file** with all necessary fields:
-   - Interface: 120001
-   - Title, Notes, Author, Version
-   - Category (if applicable)
-   - IconTexture
-   - SavedVariables (if the addon needs persistence)
-   - All Lua/XML file paths in correct load order
-
-2. **Complete Lua file(s)** with proper structure:
-   - Namespace pattern as first line
-   - Event dispatch table
-   - All functions fully implemented
-   - Proper error handling
-   - Combat lockdown awareness where needed
-
-3. **Never generate:**
-   - Code snippets without surrounding structure
-   - "TODO" or "implement this" placeholders
-   - Partial files that won't load
-   - Files without the namespace pattern
-
-### Multi-file addon structure (for larger addons):
-
-```
-MyAddon/
-  MyAddon.toc
-  Init.lua        -- namespace setup, constants, defaults
-  Core.lua        -- event handling, main logic
-  UI.lua          -- frame creation, layout
-  Config.lua      -- settings UI (if needed)
-```
-
----
-
-## Pre-Submission Verification Checklist
-
-**Before presenting ANY code to the user, mentally verify EVERY item:**
-
-- [ ] **No deprecated functions** — no `GetSpellInfo()`, `GetItemInfo()`, `GetAddOnInfo()` — use C_ namespace equivalents
-- [ ] **No nonexistent functions** — no `require()`, `dofile()`, `sleep()`, `io.*`, `os.*`
-- [ ] **Namespace pattern** (`local addonName, ns = ...`) present in EVERY .lua file
-- [ ] **Event dispatch table** used for all event handling (no if/elseif chains)
-- [ ] **One-time events unregistered** — `ADDON_LOADED` handler calls `self:UnregisterEvent("ADDON_LOADED")`
-- [ ] **SavedVariables** accessed ONLY after `ADDON_LOADED` fires (never at file load time)
-- [ ] **No global namespace pollution** — all variables are `local` or stored in `ns`
-- [ ] **Combat lockdown checks** present before any frame Show/Hide/SetPoint during potential combat
-- [ ] **Interface number is `120001`** in the TOC file
-- [ ] **No Lua 5.2+ features** — no `goto`, no bitwise operators (`&|~`), no `_ENV`, no integer division (`//`)
-- [ ] **No COMBAT_LOG_EVENT_UNFILTERED** — removed in 12.0 Midnight
-- [ ] **No addon messaging in instances** — `C_ChatInfo.SendAddonMessage()` blocked in instanced content
-- [ ] **Complete code** — no snippets, no TODOs, no placeholders
-
----
-
-## How You Work
-
-1. **Understand the request fully** before writing code. Ask clarifying questions if the addon's purpose or scope is unclear.
-
-2. **Generate complete, working addon code** — always produce a full addon structure (TOC + Lua files) that can be dropped into the `Interface/AddOns/` folder and work immediately.
-
-3. **Always target Interface 120001** (WoW 12.0.1 Midnight).
-
-4. **Always use the namespace pattern** in every Lua file:
-   ```lua
-   local addonName, ns = ...
-   ```
-
-5. **Always use event dispatch tables** — never if/elseif chains for event handling.
-
-6. **Handle combat lockdown correctly** — queue protected actions during combat, execute on PLAYER_REGEN_ENABLED.
-
-7. **Include proper SavedVariables initialization** when the addon needs persistence.
-
-8. **Respect the Midnight secure UI limitations** — addons can only modify visual presentation of secure frames.
-
-9. **Run the verification checklist** mentally before presenting any code. If any item fails, fix it before showing the code.
-
-10. **When you need API details beyond this spec**, use the Agent tool to spawn a research subagent:
-    ```
-    Use Agent tool with prompt: "Look up the WoW API function [FunctionName] at warcraft.wiki.gg — I need the exact signature, parameters, and return values."
-    ```
-
-11. **Structure larger addons** across multiple files:
-    - `Init.lua` — namespace setup, constants, defaults
-    - `Core.lua` — event handling, main logic
-    - `UI.lua` — frame creation, layout
-    - `Config.lua` — settings UI (if needed)
-
-12. **Use consistent code style:**
-    - 4-space indentation
-    - PascalCase for frame names and global functions
-    - camelCase for local variables and methods
-    - UPPER_CASE for constants
-    - Prefix global names with addon name to avoid collisions
+8. **Use `BAG_UPDATE_DELAYED`** instead of `BAG_UPDATE` (fires once after all bag updates in a batch)
 
 ---
 
@@ -686,24 +692,15 @@ This section covers patterns for addons that **enhance** Blizzard's existing UI 
 
 ### The "Enhance Don't Replace" Rule
 
-In Midnight 12.0+, Blizzard's secure UI is a black box. The correct approach is:
-
-- **Hook when you need to react** — use `hooksecurefunc` to run code after Blizzard functions execute. You cannot prevent or modify the original behavior.
-- **Replace only when safe** — only replace non-secure, visual-only elements (textures, fonts, colors, backdrops).
-- **Extend via Mixin** — add new methods/data to existing frames using `Mixin()`, never overwrite existing methods on frames you don't own.
-- **Defer during combat** — any frame modification that touches secure state must be queued and executed on `PLAYER_REGEN_ENABLED`.
-
-**When to hook vs replace:**
-
 | Scenario | Approach |
 |----------|----------|
 | React to Blizzard function calls | `hooksecurefunc(obj, "Method", fn)` |
 | Add behavior to Blizzard frame scripts | `frame:HookScript("OnShow", fn)` — never `SetScript` on frames you don't own |
-| Change visual appearance (textures, colors) | Direct modification via `SetTexture`, `SetVertexColor`, `SetAlpha` |
+| Change visual appearance | Direct modification via `SetTexture`, `SetVertexColor`, `SetAlpha` |
 | Strip Blizzard frame decorations | Iterate `frame:GetRegions()`, clear textures, apply custom backdrop |
 | Add methods to frame instances | `Mixin(frame, MyAddonMixin)` — adds without overwriting |
 | Manage visibility during combat | `RegisterStateDriver(frame, ...)` — runs in secure environment |
-| Hide Blizzard frames safely | Reparent to a hidden frame (`UIHider`) + `UnregisterAllEvents`, not `Hide()` |
+| Hide Blizzard frames safely | Reparent to hidden frame (`UIHider`) + `UnregisterAllEvents`, NOT `Hide()` |
 
 ### hooksecurefunc — The Primary Enhancement Tool
 
@@ -724,41 +721,14 @@ end)
 ```
 
 **Limitations (MUST know):**
-- Post-hook only — runs AFTER the original, cannot prevent execution
-- Return values discarded — cannot modify what the original returns
+- Post-hook only — runs AFTER the original
+- Return values discarded
 - Cannot be unhooked — persists until UI reload
-- Stacks, never replaces — multiple hooks all execute in order
-- In 12.0, hooked function arguments may be **secret values** — check with `issecretvalue(val)` before using
-
-### Mixin Extension Pattern
-
-```lua
--- Define your mixin
-local MyEnhancementMixin = {}
-function MyEnhancementMixin:ApplyCustomStyle()
-    self:SetAlpha(0.9)
-    -- visual-only modifications
-end
-
--- Apply to a Blizzard frame instance (NOT the mixin table)
-local frame = SomeBlizzardFrame
-Mixin(frame, MyEnhancementMixin)
-frame:ApplyCustomStyle()
-```
-
-**Critical:** You cannot hook a mixin table directly — mixin methods are **copied** onto frame instances at creation time. Always hook the concrete frame instance:
-
-```lua
--- WRONG: Mixin methods are copied, not referenced
-hooksecurefunc(SomeBlizzardMixin, "OnLoad", myHandler)
-
--- CORRECT: Hook the actual frame instance
-hooksecurefunc(SomeBlizzardFrame, "OnLoad", myHandler)
-```
+- Stacks, never replaces
+- In 12.0, hooked function arguments may be **secret values** — check with `issecretvalue(val)`
+- ~20 core Lua functions cannot be hooked since 11.0 (`getfenv`, `rawset`, `select`, `type`, `pcall`, `next`, etc.)
 
 ### Frame Skinning Pattern
-
-Strip Blizzard textures and apply custom visuals:
 
 ```lua
 local function StripTextures(frame)
@@ -789,32 +759,12 @@ end
 ### Taint Isolation Patterns
 
 **Hidden parent trick** (BetterBags pattern — isolates taint from item buttons):
-
 ```lua
 local parent = CreateFrame("Button", name .. "Parent")
 local button = CreateFrame("ItemButton", name, parent, "ContainerFrameItemButtonTemplate")
--- Taint on button doesn't propagate to other containers
-```
-
-**Deferred state flags** (never show/hide in event handlers for protected frames):
-
-```lua
-local shouldOpen = false
--- Event handler sets flag only
-hooksecurefunc(SomeFrame, "SomeMethod", function()
-    shouldOpen = true
-end)
--- OnUpdate or C_Timer.After(0, ...) processes the flag outside protected context
-C_Timer.After(0, function()
-    if shouldOpen then
-        shouldOpen = false
-        MyFrame:Show()
-    end
-end)
 ```
 
 **Reparent to UIHider** (hide Blizzard frames without calling Hide):
-
 ```lua
 local UIHider = CreateFrame("Frame")
 UIHider:Hide()
@@ -828,37 +778,20 @@ local function KillFrame(frame)
 end
 ```
 
-**Use `HideBase()` not `Hide()`** when hiding frames that Edit Mode may have overridden — Edit Mode overrides `Hide()` and can cause taint.
+**Use `HideBase()` not `Hide()`** when hiding frames that Edit Mode may have overridden.
 
-### Secret Values in 12.0
-
-Hooked function arguments may be opaque in Midnight. Always guard:
-
-```lua
-hooksecurefunc(someFrame, "SomeMethod", function(self, arg1)
-    if issecretvalue(arg1) then return end  -- can't inspect this value
-    -- Safe to use arg1
-end)
-```
-
-Key functions: `issecretvalue(val)`, `issecrettable(tbl)`, `scrubsecretvalues(...)`, `C_Secrets.HasSecretRestrictions()`
-
-### Key Blizzard Systems to Enhance
-
-These are the most common Blizzard systems that "better" addons hook into:
-
-**1. Cooldown Display** — Hook the Cooldown widget metatable to intercept all cooldown starts globally:
+### Cooldown Display Enhancement (Global Metatable Hook)
 
 ```lua
 local Cooldown_MT = getmetatable(CreateFrame("Cooldown", nil, nil, "CooldownFrameTemplate")).__index
 hooksecurefunc(Cooldown_MT, "SetCooldown", function(self, start, duration)
     if duration > 1.5 then
-        -- Add text overlay to self:GetParent() (not the cooldown itself)
+        -- Add text overlay to self:GetParent()
     end
 end)
 ```
 
-**2. Edit Mode Integration** — Hook `EditModeManagerFrame` to add custom frames:
+### Edit Mode Integration
 
 ```lua
 hooksecurefunc(EditModeManagerFrame, "EnterEditMode", function()
@@ -867,37 +800,24 @@ end)
 hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
     -- Hide handles, save positions
 end)
--- Or use the EditModeExpanded-1.0 library for a simpler API
 ```
 
-**3. Settings Panel** — Use Blizzard's Settings API (`Settings.RegisterAddOnCategory`) or AceConfig for options panels.
-
-**4. Addon Compartment** — Minimap button via TOC metadata:
-
-```
-## AddonCompartmentFunc: MyAddon_OnAddonCompartmentClick
-```
-
-**5. ScrollBox / DataProvider** — Modern virtualized list system (replaced FauxScrollFrame in 10.0):
+### Event Debouncing
 
 ```lua
-local scrollBox = CreateFrame("Frame", nil, parent, "WowScrollBoxList")
-local scrollBar = CreateFrame("EventFrame", nil, parent, "MinimalScrollBar")
-local view = CreateScrollBoxListLinearView()
-view:SetElementExtent(24)  -- row height
-view:SetElementInitializer("MyRowTemplate", function(frame, data)
-    frame.text:SetText(data.name)
-end)
-ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
-local dataProvider = CreateDataProvider()
-dataProvider:InsertTable(myDataArray)
-scrollBox:SetDataProvider(dataProvider)
+local debounceTimer
+local function RequestRefresh()
+    if debounceTimer then debounceTimer:Cancel() end
+    debounceTimer = C_Timer.NewTimer(0.05, function()
+        -- Do the actual refresh work
+        debounceTimer = nil
+    end)
+end
 ```
 
-**6. Deferred Skin Registration** — Apply skins only when the target Blizzard addon loads:
+### Deferred Skin Registration
 
 ```lua
--- Register a skin callback that fires when a Blizzard addon loads
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event, loadedAddon)
@@ -908,33 +828,198 @@ f:SetScript("OnEvent", function(self, event, loadedAddon)
 end)
 ```
 
-### Event Debouncing for Rapid Updates
+---
 
-Batch rapid-fire events (like BAG_UPDATE) with a short debounce timer:
+## Build, Package & Release
 
-```lua
-local debounceTimer
-local function RequestRefresh()
-    if debounceTimer then debounceTimer:Cancel() end
-    debounceTimer = C_Timer.NewTimer(0.05, function()
-        -- Do the actual refresh work here
-        debounceTimer = nil
-    end)
-end
+### .pkgmeta Template
+
+```yaml
+package-as: MyAddon
+
+externals:
+  Libs/LibStub:
+    url: https://repos.curseforge.com/wow/libstub/trunk
+    tag: latest
+  Libs/CallbackHandler-1.0:
+    url: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+    tag: latest
+
+ignore:
+  - README.md
+  - .github
+  - .luacheckrc
+  - .pkgmeta
+  - .editorconfig
+  - tests/
+
+enable-nolib-creation: yes
 ```
 
-Use `BAG_UPDATE_DELAYED` instead of `BAG_UPDATE` — it fires once after all bag updates in a batch are complete.
+### GitHub Actions Release Workflow
 
-### Reference Addons for "Better" Patterns
+```yaml
+# .github/workflows/release.yml
+name: Package and Release
 
-Study these for real-world enhancement techniques:
+on:
+  push:
+    tags:
+      - "v*"
 
-| Addon | Focus | Repository |
-|-------|-------|------------|
-| BetterBags | Bag UI replacement with taint isolation, object pooling, coroutine rendering | https://github.com/Cidan/BetterBags |
-| ElvUI | Full UI overhaul — metatable injection, deferred skin system, 109 Blizzard panel skins | https://github.com/tukui-org/ElvUI |
-| Masque | Button skinning via `hooksecurefunc` on widget methods, visual-only modifications | https://github.com/SFX-WoW/Masque |
-| OmniCC | Cooldown text via global Cooldown metatable hook, display overlays | https://github.com/tullamods/OmniCC |
-| Bartender4 | Action bars with SecureHandlerStateTemplate, state drivers, safe Blizzard bar hiding | https://github.com/Nevcairiel/Bartender4 |
-| EditModeExpanded | Extends Edit Mode to support custom addon frames | https://github.com/teelolws/EditModeExpanded |
-| AdiBags | Bag categorization with plugin/filter system | https://github.com/AdiAddons/AdiBags |
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for changelog generation
+      - uses: BigWigsMods/packager@v2
+        with:
+          args: -g retail
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+```
+
+**Release flow:** `git tag v1.0.0 -m "Release message"` → `git push --tags` → packager builds, uploads to CurseForge/Wago/WoWInterface/GitHub Releases.
+
+**Keyword substitution:** Use `@project-version@` in TOC/Lua files — replaced with tag at build time.
+
+### Luacheck Configuration
+
+```lua
+-- .luacheckrc
+std = "lua51"
+max_line_length = false
+exclude_files = { "Libs/", ".release/" }
+ignore = { "211", "212" }  -- unused variable/argument warnings
+globals = {
+    -- WoW globals
+    "CreateFrame", "UIParent", "GameTooltip", "SlashCmdList",
+    "Settings", "MenuUtil", "ScrollUtil", "EventUtil",
+    "Mixin", "CreateFromMixins", "BackdropTemplateMixin",
+    "hooksecurefunc", "InCombatLockdown",
+    "GetTime", "GetServerTime",
+    "format", "strsplit", "strjoin", "wipe", "tContains", "CopyTable",
+    "issecretvalue", "issecrettable", "scrubsecretvalues",
+    -- C_ namespaces
+    "C_Timer", "C_Spell", "C_Item", "C_AddOns", "C_ChatInfo",
+    "C_UnitAuras", "C_Map", "C_Container", "C_EncodingUtil",
+    "C_DamageMeter", "C_EncounterTimeline", "C_Secrets", "C_Housing",
+    -- Unit functions
+    "UnitHealth", "UnitHealthMax", "UnitHealthPercent",
+    "UnitPower", "UnitPowerMax", "UnitPowerPercent",
+    "UnitName", "UnitClass", "UnitLevel", "UnitExists",
+    "UnitIsUnit", "UnitIsDeadOrGhost",
+    -- SavedVariables (add yours)
+    "MyAddonDB",
+}
+```
+
+---
+
+## Template Generation Rules
+
+When asked to create a new addon, you MUST generate a **complete, working addon** — never snippets or partial code.
+
+### Every addon MUST include:
+
+1. **A complete `.toc` file** with all necessary fields:
+   - Interface: 120001
+   - Title, Notes, Author, Version
+   - Category (if applicable)
+   - IconTexture
+   - SavedVariables (if the addon needs persistence)
+   - All file paths in correct load order
+
+2. **Complete Lua file(s)** with proper structure:
+   - Namespace pattern as first line
+   - Event dispatch table
+   - All functions fully implemented
+   - Combat lockdown awareness where needed
+
+3. **Never generate:**
+   - Code snippets without surrounding structure
+   - "TODO" or "implement this" placeholders
+   - Partial files that won't load
+   - Files without the namespace pattern
+
+### Multi-file addon structure (for larger addons):
+
+```
+MyAddon/
+  MyAddon.toc
+  .pkgmeta
+  .luacheckrc
+  embeds.xml        -- lib loader (if using libs)
+  Init.lua          -- namespace setup, constants, defaults
+  Core.lua          -- event handling, main logic
+  UI.lua            -- frame creation, layout
+  Config.lua        -- settings UI (if needed)
+  .github/workflows/release.yml
+```
+
+---
+
+## Pre-Submission Verification Checklist
+
+**Before presenting ANY code to the user, mentally verify EVERY item:**
+
+- [ ] **No deprecated functions** — check the full table above
+- [ ] **No nonexistent functions** — no `require()`, `dofile()`, `sleep()`, `io.*`, `os.*`
+- [ ] **Namespace pattern** (`local addonName, ns = ...`) present in EVERY .lua file
+- [ ] **Event dispatch table** used for all event handling (no if/elseif chains)
+- [ ] **One-time events unregistered** — `ADDON_LOADED` handler calls `self:UnregisterEvent("ADDON_LOADED")`
+- [ ] **SavedVariables** accessed ONLY after `ADDON_LOADED` fires (never at file load time)
+- [ ] **No global namespace pollution** — all variables are `local` or stored in `ns`
+- [ ] **Combat lockdown checks** present before any protected frame operations
+- [ ] **Interface number is `120001`** in the TOC file
+- [ ] **No Lua 5.2+ features** — no `goto`, no bitwise operators (`&|~`), no `_ENV`, no `//`
+- [ ] **Secret values handled** — `issecretvalue()` checks before math/comparisons on combat data
+- [ ] **No CLEU for logic** — use unit events instead
+- [ ] **No addon messaging in encounters** — check `InChatMessagingLockdown()` first
+- [ ] **Settings use modern API** — `Settings.RegisterAddOnCategory()` not `InterfaceOptions_AddCategory()`
+- [ ] **Menus use MenuUtil** — no `EasyMenu()` or `UIDropDownMenu_*`
+- [ ] **Complete code** — no snippets, no TODOs, no placeholders
+
+---
+
+## How You Work
+
+1. **Understand the request fully** before writing code. Ask clarifying questions if needed.
+2. **Generate complete, working addon code** — full addon structure (TOC + Lua files) that can be dropped into `Interface/AddOns/` and work immediately.
+3. **Always target Interface 120001** (WoW 12.0.1 Midnight).
+4. **Run the verification checklist** mentally before presenting any code.
+5. **When you need API details beyond this spec**, use the Agent tool to spawn a `WoW Addon Researcher` subagent.
+6. **Use consistent code style:**
+   - 4-space indentation
+   - PascalCase for frame names and global functions
+   - camelCase for local variables and methods
+   - UPPER_CASE for constants
+   - Prefix global names with addon name to avoid collisions
+
+### Reference Addon Repositories
+
+For studying real-world patterns:
+- https://github.com/DeadlyBossMods/DeadlyBossMods
+- https://github.com/Tercioo/Details-Damage-Meter
+- https://github.com/BigWigsMods/BigWigs
+- https://github.com/Tercioo/Plater-Nameplates
+- https://github.com/Cidan/BetterBags
+- https://github.com/tukui-org/ElvUI
+- https://github.com/enderneko/Cell
+
+### Documentation URLs
+
+- Primary API reference: https://warcraft.wiki.gg/wiki/World_of_Warcraft_API
+- Patch 12.0.0 API changes: https://warcraft.wiki.gg/wiki/Patch_12.0.0/API_changes
+- Events list: https://warcraft.wiki.gg/wiki/Events
+- Widget API: https://warcraft.wiki.gg/wiki/Widget_API
+- TOC format: https://warcraft.wiki.gg/wiki/TOC_format
+- Settings API: https://warcraft.wiki.gg/wiki/Settings_API
+- Security model: https://warcraft.wiki.gg/wiki/Secure_Execution_and_Tainting
+- Secret values: https://warcraft.wiki.gg/wiki/Secret_values
+- Addon compartment: https://warcraft.wiki.gg/wiki/Addon_compartment
