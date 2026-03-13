@@ -26,11 +26,11 @@ Before diving into details, here's where the major addons stand as of March 2026
 
 | Addon | Status |
 |---|---|
-| **DBM** | v12.0.12+ shipping. Custom timers, audio alerts. MysticalOS met directly with Ion Hazzikostas. |
-| **BigWigs / LittleWigs** | Shipping. Similar reduced scope as DBM. |
+| **DBM** | v12.0.30 (Mar 12, 2026). Custom timers, audio alerts. MysticalOS met directly with Ion Hazzikostas. Supports Manaforge, Voidspire, Dreamrift, March on Quel'Danas. |
+| **BigWigs / LittleWigs** | Updated Mar 12, 2026. 183.2M+ downloads. Reformats native boss timeline with custom visuals/sounds. LittleWigs handles dungeons/delves. |
 | **Details!** | 330M+ downloads on CurseForge. Now functionally a skin over Blizzard's meter data. |
 | **ElvUI** | v15.0.0 shipped after dramatic reversal -- initially cancelled in October 2025, returned December 2025. Style Filters and Portraits **removed**. |
-| **Plater** | Shipping but heavily reduced. NPC-specific coloring, aura-based scaling, fixate detection -- all gone. |
+| **Plater** | v635 (Mar 4, 2026). Shipping but heavily reduced. NPC-specific coloring, aura-based scaling, fixate detection -- all gone. Many old Wago profiles don't work. |
 | **Cell** (raid frames) | Most technically thorough adaptation. [PR #457 on GitHub](https://github.com/enderneko/Cell/pull/457) is a masterclass in Secret Values migration. |
 | **MRT** | v5260 for 12.0.1. The backbone of organized raiding -- cooldown tracking, notes, assignments all working. |
 | **OPie** | [Updated for Midnight Pre-Patch](https://www.wowhead.com/news/opie-addon-updated-for-midnight-pre-patch-380234) (February 5, 2026). |
@@ -47,6 +47,11 @@ Before diving into details, here's where the major addons stand as of March 2026
 | **Better Timeline** | Boss timeline | [Standalone addon](https://www.wowhead.com/news/boss-mod-addons-in-midnight-teaching-old-mods-new-tricks-380024) based on the popular RaidAbilityTimeline WeakAura. For players wanting more control than Blizzard's default. |
 | **Harreks Raid Frames** | Healer frames | New addon for [tracking healer buffs on raid frames](https://www.wowhead.com/news/how-to-track-some-healer-buffs-on-raid-frames-in-midnight-using-harreks-raid-380345) in Midnight. |
 | **MoneyFrameFix** | Bug fix | Patches Blizzard's own LUA error -- vendor prices were incorrectly hidden by Secret Values in combat. |
+| **Danders Frames** | Healer frames | Emerging VuhDo replacement. Recommended in community threads as "probably the best of the bunch." |
+| **MidnightNameplates** | Nameplates | By D4KiR. 5,100+ downloads. Replaces default nameplates, shows debuffs. |
+| **Housing Decor Guide** | Housing | Tracks all 1,690 housing decor items with multiple version updates. |
+| **Advanced Decoration Tools** | Housing | Copy/paste (Ctrl+C/V), batch placement, Minecraft-style QuickBar, smart rotation. By No-String1034. |
+| **HandyNotes: Midnight** | Exploration | Expansion-specific HandyNotes plugin for Midnight content. |
 
 ---
 
@@ -57,9 +62,12 @@ Before diving into details, here's where the major addons stand as of March 2026
 
 This is the biggest story in Midnight's addon landscape. WeakAuras -- the Swiss Army knife used by millions of players -- **refused to ship a Midnight version**.
 
+!!! warning "WeakAuras actively detects the Midnight client and refuses to boot"
+    Rather than spewing thousands of errors, the addon now detects the Midnight client and refuses to load entirely. It still works in The War Within content and WoW Classic (MoP Classic, Anniversary Edition).
+
 ### Why It's Impossible (Not Just Hard)
 
-The WeakAuras team's [Patreon statement](https://www.patreon.com/posts/midnight-144610594) and subsequent [Wowhead coverage](https://www.wowhead.com/news/no-weakauras-addon-for-midnight-378740) laid it out plainly: Secret Values destroy the addon's core architecture. WeakAuras' power comes from **conditional triggers** -- "if health below X, glow icon," "if debuff count equals Y, play sound." Under Secret Values:
+The WeakAuras team's [Patreon statement](https://www.patreon.com/posts/midnight-144610594), [PCGamesN interview with Stanzilla (project lead, 15+ years)](https://www.pcgamesn.com/world-of-warcraft/midnight-weakauras-interview-stanzilla), and subsequent [Wowhead coverage](https://www.wowhead.com/news/no-weakauras-addon-for-midnight-378740) laid it out plainly: Secret Values destroy the addon's core architecture. Stanzilla: *"the core value proposition of WeakAuras isn't compatible with the direction Blizzard is taking the game."* WeakAuras' power comes from **conditional triggers** -- "if health below X, glow icon," "if debuff count equals Y, play sound." Under Secret Values:
 
 - Cannot glow an icon when a cooldown is ready
 - Cannot change a health bar color based on low health
@@ -492,6 +500,38 @@ Based on Blizzard's stated philosophy and the current trajectory:
 
 ---
 
+## VuhDo & Healbot: The Healer Pain
+
+!!! warning "VuhDo had pre-patch issues, Healbot lost key features"
+
+**VuhDo** -- Developer announced it wouldn't work during the 12.0.0 pre-patch, targeted March 2 for a stable version. By mid-February, updates were available on CurseForge. Community increasingly recommending [Danders Frames](https://us.forums.blizzard.com/en/wow/t/healing-vuhdo-midnight/2235209) as a replacement.
+
+**Healbot** -- Lost debuff/HoT display functionality under Secret Values. Listed in the [community addon casualty list](https://us.forums.blizzard.com/en/wow/t/list-of-addons-going-away-in-midnight/2214572) (Dec 13, 2025).
+
+---
+
+## What Players Are Actually Saying (Verified Forum Threads)
+
+!!! quote "[My god, they really did it. They really removed addons](https://us.forums.blizzard.com/en/wow/t/my-god-they-really-did-it-they-really-removed-addons/2208136) (Dec 3, 2025)"
+    "I already had a UI that I really liked" / "I'm still not very clear on what problem is actually being solved here."
+
+!!! quote "[Wait I thought it was only combat addons?](https://us.forums.blizzard.com/en/wow/t/wait-i-thought-it-was-only-combat-addons/2231474) (Jan 21, 2026)"
+    "Bagnon, immersion, leatrix plus/maps, prat. All gone along with DBM and details." (Community clarified these were TOC compatibility issues, not intentional blocks.)
+
+!!! quote "[Why are combat addons still updated?](https://us.forums.blizzard.com/en/wow/t/why-are-combat-addons-still-updated-as-of-patch-1201/2231538) (Jan 21, 2026)"
+    Key revelation: "They just can't display any information not already conveyed by the base game. They can only change how the information is displayed."
+
+!!! quote "[After playing Midnight, I don't miss combat addons](https://www.pcgamer.com/games/world-of-warcraft/after-playing-a-bunch-of-midnight-i-dont-think-i-miss-wows-combat-addons-or-my-old-class-design-at-all/) -- PC Gamer, March 5, 2026"
+    Harvey Randall's positive take on addon-free gameplay, three days post-launch.
+
+The [Shoutout your favorite Midnight addon](https://us.forums.blizzard.com/en/wow/t/shoutout-your-favorite-midnight-addon/2268368) thread (Mar 9, 2026) shows active community rebuilding, with players recommending: Enhance QoL, Plumbr, Danders Frames, MoneyFrameFix, Sensei Resource Bar, DialogueUI, and many more.
+
+### The Common Replacement Stack
+
+[Icy Veins identified](https://www.icy-veins.com/wow/news/players-are-rebuilding-their-uis-from-scratch-after-midnights-big-addon-shift/) the emerging standard replacement: **Dominos + Masque + Platynator + Leatrix Plus + BetterBlizzFrames + Cooldown Manager Tweaks + SenseiClassResourceBar**.
+
+---
+
 ## Community Sentiment: Two Weeks Post-Launch
 
 ```mermaid
@@ -585,8 +625,18 @@ This page draws from verified reporting by:
 - [GitHub: Cell PR #457](https://github.com/enderneko/Cell/pull/457)
 - [The Escapist: Quazii Quits](https://www.escapistmagazine.com/news-popular-wow-content-creator-quazzi-quits/)
 - [Wago.io Security Notice](https://accounts.wago.io/security-notice)
+- [PCGamesN: Stanzilla WeakAuras Interview (Oct 5, 2025)](https://www.pcgamesn.com/world-of-warcraft/midnight-weakauras-interview-stanzilla)
+- [PC Gamer: After playing Midnight, I don't miss combat addons (Mar 5, 2026)](https://www.pcgamer.com/games/world-of-warcraft/after-playing-a-bunch-of-midnight-i-dont-think-i-miss-wows-combat-addons-or-my-old-class-design-at-all/)
+- [BlizzardWatch: What's happening with addons (Nov 3, 2025)](https://blizzardwatch.com/2025/11/03/heck-happening-wow-addons-midnight/)
+- [BlizzardWatch: How to use Cooldown Manager](https://blizzardwatch.com/2026/01/16/wow-cooldown-manager-how-to-use/)
+- [BlizzardWatch: How to activate damage meter](https://blizzardwatch.com/2026/01/21/activate-use-new-built-damage-meter-wow-midnight/)
+- [Icy Veins: The Addonpocalypse Working List (Jan 20, 2026)](https://www.icy-veins.com/wow/news/the-addonpocalypse-is-upon-us-heres-a-list-of-working-addons-for-your-life-raft/)
+- [Icy Veins: Essential Addons for Midnight](https://www.icy-veins.com/wow/news/essential-addons-you-should-still-use-in-wow-midnight/)
+- [Icy Veins: Housing Made Easier with ADT (Dec 14, 2025)](https://www.icy-veins.com/wow/news/housing-just-got-way-easier-thanks-to-one-simple-addon-favorites-quickbar-copy-paste-and-batch-placement/)
+- [CurseForge: DBM v12.0.30 (Mar 12, 2026)](https://www.curseforge.com/wow/addons/deadly-boss-mods/files/7745941)
 - [Warcraft Wiki: Patch 12.0.0 API Changes](https://warcraft.wiki.gg/wiki/Patch_12.0.0/API_changes)
 - [Warcraft Wiki: Patch 12.0.1 API Changes](https://warcraft.wiki.gg/wiki/Patch_12.0.1/API_changes)
+- [Warcraft Wiki: Planned API Changes](https://warcraft.wiki.gg/wiki/Patch_12.0.0/Planned_API_changes)
 
 ---
 
