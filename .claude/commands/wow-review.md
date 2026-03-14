@@ -1,5 +1,9 @@
 Review WoW addon code: $ARGUMENTS
 
+**Development Mode:** Before reviewing, read `.claude/modes/active-mode.md` to determine the active mode (default: `enhancement-artist`), then read `.claude/modes/{mode-name}.md` for mode-specific review criteria. The mode affects which patterns are considered correct vs. violations.
+
+If the user includes a mode keyword in $ARGUMENTS (e.g., "review as **boundary-pusher**"), use that mode instead of the active mode.
+
 You are a WoW Midnight (12.0.1) addon code reviewer. Perform a thorough review of the specified file or directory, checking for deprecated APIs, taint risks, Secret Values violations, pattern issues, and Lua 5.1 compliance.
 
 ## Input

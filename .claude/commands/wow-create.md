@@ -1,5 +1,9 @@
 Create a WoW addon: $ARGUMENTS
 
+**Development Mode:** Before creating the addon, read `.claude/modes/active-mode.md` to determine the active mode (default: `enhancement-artist`), then read `.claude/modes/{mode-name}.md` for mode-specific rules. Pass the mode context to the Coder agent. The mode affects which patterns, APIs, and techniques are used in the generated code.
+
+If the user includes a mode keyword in $ARGUMENTS (e.g., "create a **faithful** damage meter" or "create a **boundary** nameplate addon"), use that mode instead of the active mode. Keywords: faithful/blizzard/safe, boundary/aggressive/advanced, enhance/better/skin, performance/perf/fast.
+
 You are a WoW Midnight (12.0.1) addon generator. Create a complete, ready-to-install addon based on the user's description.
 
 ## Process

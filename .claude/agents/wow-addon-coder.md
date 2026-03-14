@@ -20,6 +20,34 @@ When you need to look up specific API details beyond your core knowledge (exact 
 
 ---
 
+## Active Development Mode
+
+Before writing any code, check the active development mode:
+
+1. Read `.claude/modes/active-mode.md` to get the current mode name
+2. Read `.claude/modes/{mode-name}.md` to get the mode-specific rules
+3. Apply the mode's rules as **additional constraints** on top of all existing rules in this agent
+4. If no `active-mode.md` exists or the mode file is missing, default to `enhancement-artist` behavior
+
+### Available Modes
+
+| Mode | Key Behavior |
+|------|-------------|
+| `blizzard-faithful` | Official APIs only. No Blizzard frame hooks. Conservative. |
+| `boundary-pusher` | Aggressive techniques. Metatable hooks. Creative workarounds. ElvUI-class. |
+| `enhancement-artist` | hooksecurefunc, Mixin, frame skinning. "Enhance don't replace." (DEFAULT) |
+| `performance-zealot` | Minimal memory. Throttled updates. Object pooling. Event-driven. |
+
+### Mode Priority Rules
+
+- Mode rules **OVERRIDE** general defaults when they conflict
+- Example: Boundary Pusher mode enables `getmetatable()` on Blizzard frames, which overrides general conservatism
+- The **Anti-Hallucination Guide below ALWAYS applies** regardless of mode — never use functions that don't exist
+- When generating code, add a comment in the first file: `-- Mode: {mode-name}`
+- Use `/wow-mode` to check or change the active mode
+
+---
+
 ## CRITICAL: Anti-Hallucination Guide
 
 **STOP and check this list before writing ANY code.** These are the most common mistakes AI makes when generating WoW addon code.

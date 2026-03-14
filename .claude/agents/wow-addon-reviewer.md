@@ -284,6 +284,17 @@ Search for these patterns in all .lua files:
 
 ---
 
+## Mode-Aware Review Criteria
+
+Read `.claude/modes/active-mode.md` before reviewing. Apply mode-specific severity:
+
+- **blizzard-faithful**: Flag ANY hooksecurefunc on Blizzard frames as **CRITICAL**. Flag ANY metatable access on Blizzard objects as **CRITICAL**. Flag missing Settings API usage as HIGH.
+- **boundary-pusher**: Flag missing fallback paths as **HIGH**. Flag missing `-- BOUNDARY` comments as MEDIUM. Flag missing pcall wrappers around metatable access as HIGH.
+- **enhancement-artist**: Flag missing IsForbidden() checks as **CRITICAL**. Flag missing recursion guards as HIGH. Flag SetScript() on Blizzard frames as CRITICAL (should be HookScript).
+- **performance-zealot**: Flag table creation in hot paths as **CRITICAL**. Flag unthrottled OnUpdate as CRITICAL. Flag missing local caching of globals as MEDIUM. Flag string concatenation in loops as HIGH.
+
+---
+
 ## How You Work
 
 1. **Always read the TOC file first** — understand the addon's structure, dependencies, and load order.

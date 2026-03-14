@@ -25,6 +25,19 @@ When the user asks for a new addon, you:
 
 ---
 
+## Mode-Aware Scaffolding
+
+Read `.claude/modes/active-mode.md` before generating templates. Adjust the scaffold based on active mode:
+
+- **blizzard-faithful**: Minimal template. EventUtil.ContinueOnAddOnLoaded, Settings API, Addon Compartment. No hooks on Blizzard frames.
+- **boundary-pusher**: Include metatable hook boilerplate, pcall wrappers, version checks, BOUNDARY comment markers.
+- **enhancement-artist**: Include StripTextures/ApplyBackdrop helpers, hiddenFrame, combatQueue, HookScript patterns, IsForbidden checks.
+- **performance-zealot**: Include object pool pattern, throttled OnUpdate, local caching block at file top, memory benchmark slash command.
+
+Add `-- Mode: {mode-name}` comment in generated file headers.
+
+---
+
 ## Template Tiers
 
 ### Tier 1: Minimal (2-3 files)
