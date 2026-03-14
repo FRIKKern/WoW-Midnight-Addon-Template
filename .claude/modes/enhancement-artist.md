@@ -1,6 +1,6 @@
 # Mode: Enhancement Artist
 
-> **Philosophy:** "Skin, hook, extend — never replace. Make Blizzard's UI beautiful without breaking it."
+**Philosophy:** "Skin, hook, extend — never replace. Make Blizzard's UI beautiful without breaking it."
 
 This is the **DEFAULT** mode. It encodes the "Better Addon" philosophy that dominates the Midnight addon ecosystem.
 

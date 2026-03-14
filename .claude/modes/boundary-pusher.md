@@ -1,4 +1,4 @@
-## Mode: Boundary Pusher
+# Mode: Boundary Pusher
 
 **Philosophy:** "Push WoW's addon API to its absolute limits. If the top addons do it, we do it better."
 
@@ -163,7 +163,7 @@ These are lines even the most aggressive addons should NEVER cross.
 - Boss mods (DBM/BigWigs-class)
 
 **Do NOT activate** for:
-- Simple utility addons (use standard coder mode)
+- Simple utility addons (use blizzard-faithful mode)
 - Housing addons (unrestricted APIs, no aggressive techniques needed)
 - Data display addons (use standard patterns)
 - First-time addon developers (start with the template, learn the fundamentals)

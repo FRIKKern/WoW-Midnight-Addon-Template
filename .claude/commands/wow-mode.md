@@ -21,13 +21,6 @@ You manage the addon development mode for this project. The mode system fundamen
    - Read `.claude/modes/{canonical-name}.md` and display a summary of the mode's philosophy and key rules
 4. If invalid argument: Show available modes and aliases
 
-## Alias Resolution
-
-- faithful, blizzard, safe, conservative → blizzard-faithful
-- boundary, pusher, aggressive, advanced, elvui → boundary-pusher
-- enhance, artist, better, skin, hook → enhancement-artist
-- performance, perf, zealot, fast, lean → performance-zealot
-
 ## Output Format
 
 When setting a mode, display:

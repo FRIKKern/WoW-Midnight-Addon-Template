@@ -62,6 +62,7 @@ This project includes specialized Claude Code agents and skills for WoW addon de
 - `/wow-debug` -- Diagnose addon problems
 - `/wow-api` -- Look up WoW API documentation
 - `/wow-research` -- Verify API claims against real sources
+- `/wow-mode` -- Switch development philosophy (faithful, boundary, enhance, performance)
 
 ## Resources
 
