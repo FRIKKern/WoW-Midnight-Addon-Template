@@ -10,3 +10,4 @@ docs-site/site/
 # External libraries fetched by BigWigs packager
 Libs/
 template/Libs/
+.vercel
