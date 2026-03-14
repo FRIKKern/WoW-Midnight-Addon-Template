@@ -75,7 +75,7 @@ For every piece of news found:
 ### Upcoming Dates
 - **March 17, 2026** — Season 1 begins
 - **March 24, 2026** — Mythic raids unlock
-- **TBD** — Patch 12.0.5 (API changes expected)
+- **Late April/May 2026** — Patch 12.0.5 expected (likely API changes — check blue posts for confirmed date)
 
 ### Sources
 [All verified URLs with dates]

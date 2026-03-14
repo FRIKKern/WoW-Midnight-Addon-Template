@@ -10,23 +10,22 @@ Understanding these restrictions is essential for addon development — violatin
 
 Certain API functions directly affect gameplay and are classified as **protected**. These functions can only be called from secure (Blizzard) code, or from addon code in response to a hardware event (keypress or mouse click) while **not** in combat.
 
-:::danger[Protected Functions]
-The following functions are protected and cannot be called freely from addon code:
+!!! danger "Protected Functions"
+    The following functions are protected and cannot be called freely from addon code:
 
-| Function | Purpose |
-|---|---|
-| `CastSpellByName()` | Cast a spell by name |
-| `TargetUnit()` | Target a specific unit |
-| `UseAction()` | Use an action bar slot |
-| `JumpOrAscendStart()` | Make the character jump |
-| `ToggleAutoRun()` | Toggle auto-run |
-| `StartAttack()` | Begin auto-attack |
-| `PetAttack()` | Command pet to attack |
-| `RunMacroText()` | Execute macro text |
-| `SetBinding()` | Set a key binding |
+    | Function | Purpose |
+    |---|---|
+    | `CastSpellByName()` | Cast a spell by name |
+    | `TargetUnit()` | Target a specific unit |
+    | `UseAction()` | Use an action bar slot |
+    | `JumpOrAscendStart()` | Make the character jump |
+    | `ToggleAutoRun()` | Toggle auto-run |
+    | `StartAttack()` | Begin auto-attack |
+    | `PetAttack()` | Command pet to attack |
+    | `RunMacroText()` | Execute macro text |
+    | `SetBinding()` | Set a key binding |
 
-These require a **hardware event** (real user input) and are fully blocked during combat lockdown.
-:::
+    These require a **hardware event** (real user input) and are fully blocked during combat lockdown.
 
 ## Taint System
 
@@ -59,9 +58,8 @@ local result = secureValue + taintedValue  -- result is now TAINTED
 -- TargetUnit("player")  -- ERROR: blocked by taint
 ```
 
-:::warning[Irrevocable Taint]
-Calling `loadstring()` or `setfenv()` **irrevocably taints** the resulting code. There is no way to "untaint" code produced by these functions. Avoid them if your code needs to interact with secure frames.
-:::
+!!! warning "Irrevocable Taint"
+    Calling `loadstring()` or `setfenv()` **irrevocably taints** the resulting code. There is no way to "untaint" code produced by these functions. Avoid them if your code needs to interact with secure frames.
 
 ### Checking Taint Status
 
@@ -89,12 +87,11 @@ if InCombatLockdown() then
 end
 ```
 
-:::danger[During Combat Lockdown, You Cannot:]
-- Call **any** protected function
-- Create new **secure frames** (frames using secure templates)
-- Modify **secure frame attributes** (e.g., changing a SecureActionButton's action)
-- Show or hide **secure frames**
-:::
+!!! danger "During Combat Lockdown, You Cannot:"
+    - Call **any** protected function
+    - Create new **secure frames** (frames using secure templates)
+    - Modify **secure frame attributes** (e.g., changing a SecureActionButton's action)
+    - Show or hide **secure frames**
 
 ### Pattern: Queue Actions for After Combat
 
@@ -133,9 +130,8 @@ ns:RunOrQueue(function()
 end)
 ```
 
-:::tip
-Always check `InCombatLockdown()` before performing any protected operation. The queue-and-execute pattern above is the idiomatic way to handle this.
-:::
+!!! tip
+    Always check `InCombatLockdown()` before performing any protected operation. The queue-and-execute pattern above is the idiomatic way to handle this.
 
 ## Hardware Event Requirements
 
@@ -166,23 +162,21 @@ tex:SetTexture(133230)  -- Fireball icon
 -- This works because it's a real hardware event routed through secure code
 ```
 
-:::warning
-You **must** set secure button attributes **outside** of combat. Attempting to call `SetAttribute()` on a secure frame during `InCombatLockdown()` will silently fail.
-:::
+!!! warning
+    You **must** set secure button attributes **outside** of combat. Attempting to call `SetAttribute()` on a secure frame during `InCombatLockdown()` will silently fail.
 
 ## What Addons Cannot Do
 
 Understanding the boundaries of the sandbox helps avoid wasted effort and security violations.
 
-:::danger[Addon Restrictions]
-- **No filesystem access** — Cannot read, write, or list files (SavedVariables are the only persistence mechanism, managed by the game client)
-- **No network access** — Cannot open sockets, make HTTP requests, or communicate outside the game (addon messages are the only inter-player communication)
-- **No system commands** — Cannot execute OS commands, launch processes, or interact with the operating system
-- **No gameplay automation** — Cannot cast spells, target units, use items, or move the character without a real hardware event
-- **No secure frame modification in combat** — Cannot show, hide, or change attributes on secure frames during combat lockdown
-- **No cross-addon SavedVariables** — Cannot directly read another addon's saved data (use addon messages or public APIs instead)
-- **No raw memory access** — Cannot read or modify game memory; only the exposed Lua API is available
-:::
+!!! danger "Addon Restrictions"
+    - **No filesystem access** — Cannot read, write, or list files (SavedVariables are the only persistence mechanism, managed by the game client)
+    - **No network access** — Cannot open sockets, make HTTP requests, or communicate outside the game (addon messages are the only inter-player communication)
+    - **No system commands** — Cannot execute OS commands, launch processes, or interact with the operating system
+    - **No gameplay automation** — Cannot cast spells, target units, use items, or move the character without a real hardware event
+    - **No secure frame modification in combat** — Cannot show, hide, or change attributes on secure frames during combat lockdown
+    - **No cross-addon SavedVariables** — Cannot directly read another addon's saved data (use addon messages or public APIs instead)
+    - **No raw memory access** — Cannot read or modify game memory; only the exposed Lua API is available
 
 ## Best Practices
 
@@ -227,9 +221,8 @@ frame:SetScript("OnUpdate", function(self, elapsed)
 end)
 ```
 
-:::tip
-If you only need a one-time delayed action, use `C_Timer.After(seconds, callback)` instead of an `OnUpdate` handler. It's cleaner and automatically cleans up.
-:::
+!!! tip
+    If you only need a one-time delayed action, use `C_Timer.After(seconds, callback)` instead of an `OnUpdate` handler. It's cleaner and automatically cleans up.
 
 #### Cache Globals as Locals
 
@@ -391,13 +384,12 @@ C_ChatInfo.SendAddonMessage(PREFIX, "version:1.2.3", "GUILD")
 C_ChatInfo.SendAddonMessage(PREFIX, "request:config", "WHISPER", "PlayerName")
 ```
 
-:::warning[Message Limits]
-- Maximum message size: **255 bytes** per message
-- Throttle: approximately **10 messages per second** before the server starts dropping them
-- Prefix: maximum **16 characters**
+!!! warning "Message Limits"
+    - Maximum message size: **255 bytes** per message
+    - Throttle: approximately **10 messages per second** before the server starts dropping them
+    - Prefix: maximum **16 characters**
 
-Exceeding these limits causes messages to be silently dropped.
-:::
+    Exceeding these limits causes messages to be silently dropped.
 
 ### Receiving Messages
 
@@ -444,6 +436,5 @@ function ns:SendLargeData(data, channel)
 end
 ```
 
-:::tip
-For serious data synchronization needs, consider using the **LibSerialize** and **LibDeflate** libraries available through the addon ecosystem, rather than writing your own serialization and compression.
-:::
+!!! tip
+    For serious data synchronization needs, consider using the **LibSerialize** and **LibDeflate** libraries available through the addon ecosystem, rather than writing your own serialization and compression.

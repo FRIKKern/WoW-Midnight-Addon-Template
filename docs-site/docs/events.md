@@ -33,13 +33,15 @@ frame:RegisterUnitEvent("UNIT_HEALTH", "player")
 frame:RegisterUnitEvent("UNIT_AURA", "target", "focus")
 ```
 
-:::tip
-`RegisterUnitEvent` is more efficient than `RegisterEvent` for unit events because the client only fires the handler for the units you specify, rather than every unit in range.
-:::
+!!! tip
+    `RegisterUnitEvent` is more efficient than `RegisterEvent` for unit events because the client only fires the handler for the units you specify, rather than every unit in range.
 
 ## Table Dispatch Pattern
 
 For addons that handle multiple events, use a **table dispatch** pattern instead of long `if/elseif` chains. This gives O(1) lookup and keeps your code clean:
+
+!!! warning "Removed in Patch 12.0 (Midnight)"
+    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed in Patch 12.0**. The example below is for pre-12.0 reference only. See [Midnight Changes](midnight.md) for migration guidance.
 
 ```lua
 local MyAddon = {}
@@ -89,9 +91,8 @@ for event in pairs(eventHandlers) do
 end
 ```
 
-:::note
-This pattern scales well. Adding a new event means adding one table entry — no cascading `elseif` blocks to maintain.
-:::
+!!! note
+    This pattern scales well. Adding a new event means adding one table entry — no cascading `elseif` blocks to maintain.
 
 ## Events vs OnUpdate
 
@@ -147,11 +148,13 @@ ADDON_LOADED (fires per addon)
                 → SPELLS_CHANGED
 ```
 
-:::warning
-Do not access spell or talent data before `SPELLS_CHANGED` fires. APIs like `GetSpellInfo` may return nil during early loading events.
-:::
+!!! warning
+    Do not access spell or talent data before `SPELLS_CHANGED` fires. APIs like `GetSpellInfo` may return nil during early loading events.
 
 ### Combat
+
+!!! warning "Removed in Patch 12.0 (Midnight)"
+    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed in Patch 12.0**. The example below is for pre-12.0 reference only. See [Midnight Changes](midnight.md) for migration guidance.
 
 | Event | Description | Arguments |
 |---|---|---|
@@ -163,9 +166,8 @@ Do not access spell or talent data before `SPELLS_CHANGED` fires. APIs like `Get
 | `PLAYER_DEAD` | Player has died | — |
 | `PLAYER_ALIVE` | Player is alive (after releasing or resurrecting) | — |
 
-:::tip
-`COMBAT_LOG_EVENT_UNFILTERED` passes no arguments directly. Always call `CombatLogGetCurrentEventInfo()` inside the handler to get the combat log data.
-:::
+!!! tip
+    `COMBAT_LOG_EVENT_UNFILTERED` passes no arguments directly. Always call `CombatLogGetCurrentEventInfo()` inside the handler to get the combat log data.
 
 ### Units
 

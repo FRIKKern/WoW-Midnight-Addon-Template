@@ -6,3 +6,7 @@ docs-site/site/
 
 # Temporary files
 *.tmp
+
+# External libraries fetched by BigWigs packager
+Libs/
+template/Libs/

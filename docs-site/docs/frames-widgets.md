@@ -340,6 +340,9 @@ title:SetText("My Addon")
 
 ### Event-Driven Frame
 
+!!! warning "Removed in Patch 12.0 (Midnight)"
+    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed in Patch 12.0**. The example below is for pre-12.0 reference only. See [Midnight Changes](midnight.md) for migration guidance.
+
 ```lua
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
