@@ -88,7 +88,7 @@ Before writing any code, check the active development mode:
 
 | Event/API | Status |
 |---|---|
-| `COMBAT_LOG_EVENT_UNFILTERED` | Still fires but payload is **Secret Values** in restricted contexts (encounters, M+, PvP). Effectively useless for addon logic. |
+| `COMBAT_LOG_EVENT_UNFILTERED` | **Removed entirely** in 12.0. Use unit events (`UNIT_HEALTH`, `UNIT_AURA`, `UNIT_SPELLCAST_SUCCEEDED`, etc.) instead. |
 | `SendAddonMessage()` in instances | **Blocked** during M+, PvP, and boss encounters. Check `C_ChatInfo.InChatMessagingLockdown()` first. |
 
 ### Other Common AI Mistakes
@@ -97,7 +97,7 @@ Before writing any code, check the active development mode:
 - **Do NOT use Lua 5.2+ features** — no `goto`, no bitwise operators (`&`, `|`, `~`), no `_ENV`, no `\z` in strings, no integer division (`//`). WoW uses **Lua 5.1 only**. Use the `bit` library for bitwise operations.
 - **Do NOT assume C_ functions return the same values as their deprecated equivalents** — many C_ namespace functions return structured tables instead of multiple return values.
 - **Do NOT use `table.wipe()`** — the function is `wipe()` (global, not in table library).
-- **Do NOT use `tinsert()`/`tremove()`** — use `table.insert()` and `table.remove()`.
+- **Both `tinsert()`/`tremove()` and `table.insert()`/`table.remove()` work** — they are valid WoW globals. Prefer `table.insert()`/`table.remove()` for clarity.
 
 ---
 
@@ -306,7 +306,7 @@ Enum.AddOnRestrictionState -- Inactive, Activating, Active
 - Pattern: Queue messages, flush on `ENCOUNTER_END`
 
 ### CLEU Status
-COMBAT_LOG_EVENT_UNFILTERED still fires but `CombatLogGetCurrentEventInfo()` returns Secret Values during restricted contexts. Use unit events instead:
+`COMBAT_LOG_EVENT_UNFILTERED` and `CombatLogGetCurrentEventInfo()` are **removed entirely** in 12.0. Use unit events instead:
 - `UNIT_HEALTH` for health changes
 - `UNIT_AURA` for buff/debuff tracking
 - `UNIT_SPELLCAST_SUCCEEDED` for spell casts
@@ -761,7 +761,7 @@ end)
 
 -- Hook an object method
 hooksecurefunc(GameTooltip, "SetAction", function(self, slot)
-    local kind, id = GetActionInfo(slot)
+    local kind, id = C_ActionBar.GetActionInfo(slot)
     if kind == "spell" then
         self:AddLine("Spell ID: " .. id, 1, 1, 1)
         self:Show()

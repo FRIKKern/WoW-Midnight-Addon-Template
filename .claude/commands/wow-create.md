@@ -72,8 +72,8 @@ Config.lua
 
 **Init.lua — Namespace Pattern (MANDATORY):**
 ```lua
-local ADDON_NAME, ns = ...
-ns.ADDON_NAME = ADDON_NAME
+local addonName, ns = ...
+ns.addonName = addonName
 
 -- Shared state
 ns.db = {}
@@ -104,7 +104,7 @@ end
 
 **Core.lua — Event Dispatch (MANDATORY):**
 ```lua
-local ADDON_NAME, ns = ...
+local addonName, ns = ...
 
 local frame = CreateFrame("Frame")
 local events = {}
@@ -115,8 +115,8 @@ ns.defaults = {
     -- addon-specific defaults here
 }
 
-function events:ADDON_LOADED(addonName)
-    if addonName ~= ADDON_NAME then return end
+function events:ADDON_LOADED(loadedName)
+    if loadedName ~= addonName then return end
     -- Initialize SavedVariables with defaults merge
     AddonNameDB = AddonNameDB or {}
     for key, default in pairs(ns.defaults) do
@@ -221,7 +221,7 @@ Copy the `[Name]` folder to `World of Warcraft/_retail_/Interface/AddOns/`
 
 - NEVER use deprecated functions. Always use the C_ namespace replacements.
 - NEVER hallucinate API functions. If unsure, research first.
-- ALWAYS use the namespace pattern (`local ADDON_NAME, ns = ...`)
+- ALWAYS use the namespace pattern (`local addonName, ns = ...`)
 - ALWAYS use the event dispatch table pattern
 - ALWAYS guard combat data with `issecretvalue()` if the addon operates during encounters
 - ALWAYS set Interface to `120001`

@@ -600,11 +600,11 @@ local name = "Enable Feature"
 local tooltip = "Toggles the main feature on or off."
 local defaultValue = true
 
-local setting = Settings.RegisterAddOnSetting(category, variable, name, MyAddonDB, type(defaultValue), defaultValue)
+local setting = Settings.RegisterAddOnSetting(category, variable, variable, MyAddonDB, type(defaultValue), name, defaultValue)
 Settings.CreateCheckbox(category, setting, tooltip)
 
 -- Add a slider setting
-local sliderSetting = Settings.RegisterAddOnSetting(category, "MyAddonDB.opacity", "Opacity", MyAddonDB, type(1.0), 1.0)
+local sliderSetting = Settings.RegisterAddOnSetting(category, "MyAddonDB.opacity", "MyAddonDB.opacity", MyAddonDB, type(1.0), "Opacity", 1.0)
 local options = Settings.CreateSliderOptions(0, 1, 0.05)
 options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
     return string.format("%.0f%%", value * 100)

@@ -494,8 +494,6 @@ Use `/fstack` (framestack) in-game to inspect frame hierarchy. For source code:
 |-------|------|
 | Battle-tested patterns | `docs-site/docs/better-patterns.md` |
 | Step-by-step tutorials | `docs-site/docs/enhancement-tutorials.md` |
-| Real addon code examples | Reports: `better-code-examples.md` |
-| Complete hooking reference | Reports: `hooking-techniques.md` |
 | Blizzard native systems | `docs-site/docs/blizzard-systems.md` |
 | "Better" addon ecosystem | `docs-site/docs/better-addons.md` |
 | Security/taint model | `docs-site/docs/security.md` |

@@ -285,7 +285,7 @@ name: Package and release
 on:
   push:
     tags:
-      - "**"
+      - "v*"
 
 jobs:
   release:
@@ -814,7 +814,7 @@ The industry standard. Used by **every major addon** — BetterBags, Cell, Plate
 
 ```bash
 # Clone the template
-git clone https://github.com/YourOrg/wow-addon-template.git MyAddon
+git clone https://github.com/FRIKKern/Better-Addons-WoW-Template.git MyAddon
 cd MyAddon
 
 # Remove template git history, start fresh

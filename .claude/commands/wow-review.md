@@ -54,9 +54,9 @@ If the addon processes combat data:
 ### 4. Pattern Violations (Severity: MEDIUM)
 
 Check for WoW addon best practices:
-- **Namespace pattern**: Uses `local ADDON_NAME, ns = ...`? No bare globals?
+- **Namespace pattern**: Uses `local addonName, ns = ...`? No bare globals?
 - **Event dispatch**: Uses table-based dispatch? Events unregistered when no longer needed?
-- **ADDON_LOADED**: Properly checks `addonName == ADDON_NAME`? Unregisters after init?
+- **ADDON_LOADED**: Properly checks loaded name matches addon name? Unregisters after init?
 - **SavedVariables**: Initialized with defaults in ADDON_LOADED? Uses `or {}` pattern?
 - **Slash commands**: Registered properly with `SLASH_` prefix convention?
 - **Frame creation**: Uses `CreateFrame()` with proper parent? Not creating frames in tight loops?

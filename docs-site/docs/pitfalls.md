@@ -523,42 +523,42 @@ The 4-argument order is `left, right, top, bottom` — **not** `left, top, right
 
 ---
 
-## 12. Using COMBAT_LOG_EVENT_UNFILTERED Payload Args in Midnight
+## 12. Assuming COMBAT_LOG_EVENT_UNFILTERED Still Works
 
-In Midnight (12.0+), `COMBAT_LOG_EVENT_UNFILTERED` no longer passes combat log arguments directly. You **must** call `CombatLogGetCurrentEventInfo()` to retrieve them.
+`COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed entirely in Patch 12.0 (Midnight)**. Code that registers for it will silently receive nothing — no error, no warning, just silence. Both `CombatLogGetCurrentEventInfo()` and the event itself are gone.
 
-!!! danger "Wrong: Reading args from the event (no longer works)"
+!!! danger "Wrong: Any CLEU-based code (completely broken in 12.0+)"
     ```lua
+    -- This event no longer exists in Midnight — handler never fires
     frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    frame:SetScript("OnEvent", function(self, event, ...)
-        -- In Midnight, ... is EMPTY for this event!
-        local timestamp, subevent, hideCaster, sourceGUID, sourceName,
-              sourceFlags, sourceRaidFlags, destGUID, destName, destFlags,
-              destRaidFlags = ...  -- ALL nil!
-
-        if subevent == "SPELL_DAMAGE" then  -- nil comparison, never true
-            print(sourceName .. " hit " .. destName)
+    frame:SetScript("OnEvent", function(self, event)
+        local _, subevent = CombatLogGetCurrentEventInfo() -- API removed
+        if subevent == "SPELL_DAMAGE" then
+            print("damage!")
         end
     end)
     ```
 
-!!! tip "Correct: Use CombatLogGetCurrentEventInfo()"
+!!! tip "Correct: Use unit-specific events instead"
     ```lua
-    frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    frame:SetScript("OnEvent", function(self, event)
-        local timestamp, subevent, hideCaster, sourceGUID, sourceName,
-              sourceFlags, sourceRaidFlags, destGUID, destName, destFlags,
-              destRaidFlags, spellID, spellName, spellSchool,
-              amount = CombatLogGetCurrentEventInfo()
+    frame:RegisterUnitEvent("UNIT_HEALTH", "player", "target")
+    frame:RegisterUnitEvent("UNIT_AURA", "player")
+    frame:RegisterEvent("UNIT_POWER_UPDATE")
+    frame:RegisterEvent("UNIT_COMBAT")
 
-        if subevent == "SPELL_DAMAGE" then
-            print(sourceName .. " hit " .. destName .. " for " .. (amount or 0))
+    frame:SetScript("OnEvent", function(self, event, unit, ...)
+        if event == "UNIT_HEALTH" then
+            local hp = UnitHealth(unit)
+            local max = UnitHealthMax(unit)
+            print(unit .. " health: " .. hp .. "/" .. max)
+        elseif event == "UNIT_AURA" then
+            -- Use C_UnitAuras.GetAuraDataByIndex() to inspect auras
         end
     end)
     ```
 
 !!! warning
-    `CombatLogGetCurrentEventInfo()` is only valid **inside** the `COMBAT_LOG_EVENT_UNFILTERED` event handler. Calling it outside that context returns stale or invalid data.
+    There is no 1:1 replacement for CLEU's full combat log stream. Migrate to the specific unit events that cover your actual use case: `UNIT_HEALTH`, `UNIT_AURA`, `UNIT_POWER_UPDATE`, `UNIT_COMBAT`, etc.
 
 ---
 

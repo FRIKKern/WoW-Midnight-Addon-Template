@@ -40,8 +40,8 @@ frame:RegisterUnitEvent("UNIT_AURA", "target", "focus")
 
 For addons that handle multiple events, use a **table dispatch** pattern instead of long `if/elseif` chains. This gives O(1) lookup and keeps your code clean:
 
-!!! warning "Removed in Patch 12.0 (Midnight)"
-    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed in Patch 12.0**. The example below is for pre-12.0 reference only. See [Midnight Changes](midnight.md) for migration guidance.
+!!! warning "CLEU Removed in Patch 12.0 (Midnight)"
+    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed entirely in Patch 12.0** — it no longer fires at all. The example below uses `UNIT_HEALTH` as the modern replacement. See [Midnight Changes](midnight.md) for full migration guidance.
 
 ```lua
 local MyAddon = {}
@@ -65,10 +65,11 @@ local eventHandlers = {
         end
     end,
 
-    COMBAT_LOG_EVENT_UNFILTERED = function(self)
-        local timestamp, subevent, _, sourceGUID = CombatLogGetCurrentEventInfo()
-        if sourceGUID == UnitGUID("player") then
-            MyAddon:HandleCombatEvent(subevent)
+    -- COMBAT_LOG_EVENT_UNFILTERED was removed in 12.0.
+    -- Use unit-specific events instead:
+    UNIT_HEALTH = function(self, unit)
+        if unit == "player" then
+            MyAddon:UpdateHealthDisplay(UnitHealth(unit), UnitHealthMax(unit))
         end
     end,
 
@@ -153,12 +154,12 @@ ADDON_LOADED (fires per addon)
 
 ### Combat
 
-!!! warning "Removed in Patch 12.0 (Midnight)"
-    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed in Patch 12.0**. The example below is for pre-12.0 reference only. See [Midnight Changes](midnight.md) for migration guidance.
+!!! warning "CLEU Removed in Patch 12.0 (Midnight)"
+    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed entirely in Patch 12.0** — it no longer fires at all. Use unit-specific events like `UNIT_HEALTH`, `UNIT_AURA`, and `UNIT_COMBAT` instead. See [Midnight Changes](midnight.md) for full migration guidance.
 
 | Event | Description | Arguments |
 |---|---|---|
-| `COMBAT_LOG_EVENT_UNFILTERED` | Any combat log entry (use `CombatLogGetCurrentEventInfo()` to read) | — |
+| ~~`COMBAT_LOG_EVENT_UNFILTERED`~~ | **Removed in 12.0.** Use `UNIT_HEALTH`, `UNIT_AURA`, `UNIT_COMBAT` instead | — |
 | `PLAYER_REGEN_DISABLED` | Player entered combat | — |
 | `PLAYER_REGEN_ENABLED` | Player left combat | — |
 | `ENCOUNTER_START` | Boss encounter started | `encounterID`, `name`, `difficultyID`, `groupSize` |

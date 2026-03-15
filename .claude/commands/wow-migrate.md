@@ -26,7 +26,7 @@ Scan for these REMOVED functions and flag each occurrence with file, line, and r
 | `GetSpellCharges()` | `C_Spell.GetSpellCharges()` | 11.0 |
 | `GetSpellDescription()` | `C_Spell.GetSpellDescription()` | 11.0 |
 | `GetSpellLink()` | `C_Spell.GetSpellLink()` | 11.0 |
-| `IsSpellKnown()` | `C_Spell.IsSpellDataCached()` | 11.0 |
+| `IsSpellKnown()` | `C_Spell.IsSpellDataCached()` and `C_SpellBook.IsSpellBookItemKnown()` | 11.0 |
 | `GetItemInfo()` | `C_Item.GetItemInfo()` | 11.0 |
 | `GetItemIcon()` | `C_Item.GetItemIconByID()` | 11.0 |
 | `UnitBuff()` | `C_UnitAuras.GetBuffDataByIndex()` | 10.0 |
@@ -38,7 +38,7 @@ Scan for these REMOVED functions and flag each occurrence with file, line, and r
 | `IsEncounterInProgress()` | Removed, no direct replacement | 12.0 |
 | `IsEncounterLimitingResurrections()` | Removed | 12.0 |
 | `IsEncounterSuppressingRelease()` | Removed | 12.0 |
-| `ActionHasRange()` | `C_ActionBar.ActionHasRange()` | 12.0 |
+| `ActionHasRange()` | `C_ActionBar.IsActionInRange()` | 12.0 |
 | `GetActionAutocast()` | `C_ActionBar.GetActionAutocast()` | 12.0 |
 | `GetBonusBarIndex()` | `C_ActionBar.GetBonusBarIndex()` | 12.0 |
 | `HasBonusActionBar()` | `C_ActionBar.HasBonusActionBar()` | 12.0 |
@@ -88,7 +88,7 @@ Check .toc files for:
 Flag opportunities to modernize:
 - Old `frame:RegisterEvent` + `OnEvent` switch → `RegisterEventCallback()` (12.0)
 - Old `ChatFrame_AddMessageEventFilter` → modern equivalent
-- Missing namespace pattern (`local ADDON_NAME, ns = ...`)
+- Missing namespace pattern (`local addonName, ns = ...`)
 - Global pollution (functions/variables not in namespace)
 
 ## Output Format

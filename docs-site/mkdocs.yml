@@ -35,49 +35,54 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - Starter Template: starter-template.md
-  - "Publishing & CI/CD": publishing.md
-  - Reference:
-    - TOC File Format: toc-format.md
-    - Lua API: lua-api.md
-    - Events System: events.md
-    - Frames & Widgets: frames-widgets.md
-    - Security Model: security.md
-  - Midnight 12.0:
-    - What Changed: midnight.md
-    - Coding Patterns: midnight-patterns.md
-    - Cutting Edge: cutting-edge.md
-    - Threat Bingo: threat-bingo.md
-    - State of Addons: state-of-addons.md
-  - Better Addons:
-    - Building Better: better-addons.md
-    - Blizzard Systems: blizzard-systems.md
-    - Code Patterns: better-patterns.md
-    - Tutorials: enhancement-tutorials.md
-  - Plugin:
-    - Overview: plugin/overview.md
-    - Modes: plugin/modes.md
-    - Agents: plugin/agents.md
-    - Commands: plugin/commands.md
-  - AI Coding Guide:
-    - Overview: ai-coding-guide.md
-    - API Cheat Sheet: api-cheatsheet.md
-    - Common Pitfalls: pitfalls.md
+  - Get Started:
+    - Getting Started: getting-started.md
+    - Starter Template: starter-template.md
+    - "Publishing & CI/CD": publishing.md
+  - Learn:
+    - Reference:
+      - TOC File Format: toc-format.md
+      - Lua API: lua-api.md
+      - Events System: events.md
+      - Frames & Widgets: frames-widgets.md
+      - Security Model: security.md
+    - Midnight 12.0:
+      - What Changed: midnight.md
+      - Coding Patterns: midnight-patterns.md
+      - Cutting Edge: cutting-edge.md
+      - Threat Bingo: threat-bingo.md
+      - State of Addons: state-of-addons.md
+    - Better Addons:
+      - Building Better: better-addons.md
+      - Blizzard Systems: blizzard-systems.md
+      - Code Patterns: better-patterns.md
+      - Tutorials: enhancement-tutorials.md
+  - Build:
+    - Tutorials:
+      - "Poison Reminder (Beginner)": tutorials/poison-reminder.md
+      - "Housing Gallery (Beginner-Intermediate)": tutorials/housing-gallery.md
+      - "Smart Vendor (Intermediate)": tutorials/smart-vendor.md
+      - "Cooldown Skin (Intermediate-Advanced)": tutorials/cooldown-skin.md
+      - "Nameplate Restyler (Advanced)": tutorials/nameplate-restyler.md
+      - "Boss Timeline (Advanced)": tutorials/boss-timeline.md
     - Code Templates: code-templates.md
-    - AI Prompt Templates: ai-prompts.md
-  - Build Along:
-    - "Poison Reminder (Beginner)": tutorials/poison-reminder.md
-    - "Housing Gallery (Beginner-Intermediate)": tutorials/housing-gallery.md
-    - "Smart Vendor (Intermediate)": tutorials/smart-vendor.md
-    - "Cooldown Skin (Intermediate-Advanced)": tutorials/cooldown-skin.md
-    - "Nameplate Restyler (Advanced)": tutorials/nameplate-restyler.md
-    - "Boss Timeline (Advanced)": tutorials/boss-timeline.md
-  - Inspiration:
-    - Creative Addon Ideas: inspiration/addon-ideas.md
-    - "What's Possible": inspiration/whats-possible.md
-  - "Beyond Intentions": beyond-intentions.md
-  - Resources: resources.md
+    - Inspiration:
+      - Creative Addon Ideas: inspiration/addon-ideas.md
+      - "What's Possible": inspiration/whats-possible.md
+  - AI & Plugin:
+    - AI Coding Guide:
+      - Overview: ai-coding-guide.md
+      - API Cheat Sheet: api-cheatsheet.md
+      - Common Pitfalls: pitfalls.md
+      - AI Prompt Templates: ai-prompts.md
+    - Plugin:
+      - Overview: plugin/overview.md
+      - Modes: plugin/modes.md
+      - Agents: plugin/agents.md
+      - Commands: plugin/commands.md
+  - More:
+    - "Beyond Intentions": beyond-intentions.md
+    - Resources: resources.md
 
 markdown_extensions:
   - pymdownx.highlight:

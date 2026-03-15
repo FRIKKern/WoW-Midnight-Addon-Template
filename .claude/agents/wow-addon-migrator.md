@@ -42,7 +42,7 @@ Grep for: ## Interface:
 | `## Interface: 100207` (or any pre-120000) | `## Interface: 120001` | Required for 12.0.1 |
 | Missing `## IconTexture:` | Add `## IconTexture: Interface\AddOns\MyAddon\icon` | Required for Addon Compartment |
 | Missing `## AddonCompartmentFunc:` | Add if addon has a minimap button | Replaces LibDBIcon for simple cases |
-| Missing `## Category-enUS:` | Add for Addon Compartment categorization | Optional but recommended |
+| Missing `## Category:` | Add for Addon Compartment categorization | Optional but recommended |
 | `## OptionalDeps: LibDBIcon` | Keep — still works alongside Compartment | No change needed |
 | `## X-Embeds:` with old libs | Verify libs still exist on repos | Check .pkgmeta externals |
 
@@ -88,7 +88,7 @@ Grep for each pattern in the table below across all .lua files
 | `GetActionCooldown(slot)` | `C_ActionBar.GetActionCooldown(slot)` | Returns table |
 | `GetActionTexture(slot)` | `C_ActionBar.GetActionTexture(slot)` | Direct replacement |
 | `IsUsableAction(slot)` | `C_ActionBar.IsUsableAction(slot)` | Direct replacement |
-| `ActionHasRange(slot)` | `C_ActionBar.IsActionInRange(slot)` | Name changed |
+| `ActionHasRange(slot)` | `C_ActionBar.IsActionInRange(slot)` | Renamed |
 | `HasAction(slot)` | `C_ActionBar.HasAction(slot)` | Direct replacement |
 | `GetActionInfo(slot)` | `C_ActionBar.GetActionInfo(slot)` | Direct replacement |
 
@@ -358,11 +358,8 @@ After all changes, verify:
 | Old vs new patterns | `docs-site/docs/midnight-patterns.md` |
 | What changed and why | `docs-site/docs/midnight.md` |
 | API replacement tables | `docs-site/docs/api-cheatsheet.md` |
-| Verified API changes | Reports: `verified-api-status.md` |
-| Addon structures | Reports: `addon-structures.md` |
 | Common pitfalls | `docs-site/docs/pitfalls.md` |
 | Security model | `docs-site/docs/security.md` |
-| Real migration examples | Reports: `better-code-examples.md` |
 
 ## Working Method
 

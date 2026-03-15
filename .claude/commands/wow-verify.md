@@ -27,7 +27,7 @@ Check for these commonly-misused functions that were REMOVED or CHANGED in 12.0:
 - `GetSpellCharges()` → Use `C_Spell.GetSpellCharges()`
 - `GetSpellDescription()` → Use `C_Spell.GetSpellDescription()`
 - `GetSpellLink()` → Use `C_Spell.GetSpellLink()`
-- `IsSpellKnown()` → Use `C_Spell.IsSpellDataCached()`
+- `IsSpellKnown()` → Use `C_Spell.IsSpellDataCached()` and `C_SpellBook.IsSpellBookItemKnown()`
 - `GetItemInfo()` → Use `C_Item.GetItemInfo()`
 - `GetItemIcon()` → Use `C_Item.GetItemIconByID()`
 - `GetNumGroupMembers()` → Use `C_RaidInfo.GetNumGroupMembers()`
@@ -35,11 +35,11 @@ Check for these commonly-misused functions that were REMOVED or CHANGED in 12.0:
 - `UnitAura()` → Use `C_UnitAuras.GetAuraDataByIndex()`
 - `GetAddOnMetadata()` → Use `C_AddOns.GetAddOnMetadata()`
 - `IsAddOnLoaded()` → Use `C_AddOns.IsAddOnLoaded()`
-- `CombatLogGetCurrentEventInfo()` → Returns Secret Values in instances
+- `CombatLogGetCurrentEventInfo()` → Removed entirely in 12.0
 - `IsEncounterInProgress()` → Removed
 - `IsEncounterLimitingResurrections()` → Removed
 - `IsEncounterSuppressingRelease()` → Removed
-- `ActionHasRange()` → Use `C_ActionBar.ActionHasRange()`
+- `ActionHasRange()` → Use `C_ActionBar.IsActionInRange()`
 - `CancelEmote()` → Removed
 - `SetRaidTargetProtected()` → Removed
 
@@ -69,7 +69,7 @@ If a .toc file is present:
 For any registered events:
 - Verify the event exists in 12.0.1
 - Check if the event payload changed (many now return Secret Values)
-- Note: `COMBAT_LOG_EVENT_UNFILTERED` still fires but payload is secrets in instances
+- Note: `COMBAT_LOG_EVENT_UNFILTERED` is removed entirely in 12.0
 
 ## Output Format
 

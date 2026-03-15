@@ -80,7 +80,7 @@ WoW uses **Lua 5.1 ONLY**. Flag any:
 Use `bit.band()`, `bit.bor()`, etc. for bitwise operations.
 
 #### C4. CLEU / Combat Log Registration
-`COMBAT_LOG_EVENT_UNFILTERED` still fires but returns Secret Values in restricted contexts. Flag any:
+`COMBAT_LOG_EVENT_UNFILTERED` and `CombatLogGetCurrentEventInfo()` are **removed entirely** in 12.0. Flag any:
 
 - `RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")` used for addon logic
 - `CombatLogGetCurrentEventInfo()` calls without secret value guards

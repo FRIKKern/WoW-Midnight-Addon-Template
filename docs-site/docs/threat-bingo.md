@@ -52,7 +52,7 @@ The community had 6 months of beta to predict the Addonpocalypse. How'd they do?
 | *"ElvUI is gone forever"* | Quit in October 2025, came back in December 2025, shipped v15.0.0 | :yellow_circle: **Wrong** |
 | *"DBM/BigWigs will die"* | MysticalOS met with Ion personally. Boss mods survived as reskins of native systems | :yellow_circle: **Wrong** |
 | *"Damage meters are dead"* | Details! is a skin over `C_DamageMeter`. Numbers are real, features are gutted | :red_circle: **Half right** |
-| *"CLEU is completely removed"* | Still fires, but payload is Secret Values in instances. Effectively useless for addon logic | :red_circle: **Half right** |
+| *"CLEU is completely removed"* | Confirmed — CLEU was removed entirely in 12.0. It no longer fires for addons at all | :green_circle: **Correct** |
 | *"Blizzard will back down"* | Made concessions (healer spells, whitelisted auras) but core restrictions held | :red_circle: **Mostly wrong** |
 | *"This will kill WoW"* | Launch described as "broadly positive." PC Gamer: *"I don't miss combat addons"* | :skull: **Dead wrong** |
 | *"Healers are screwed"* | Scrambled hard. Cell, Grid2, Clique adapted. VuhDo, Healbot being updated. Danders Frames emerging | :yellow_circle: **Overstated** |

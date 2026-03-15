@@ -398,9 +398,6 @@ When you need deeper knowledge, read these project files:
 | Init lifecycle | `docs/LIFECYCLE_SECURITY_REFERENCE.md` |
 | Blizzard UI systems | `docs-site/docs/blizzard-systems.md` |
 | Code templates | `docs-site/docs/code-templates.md` |
-| Hooking techniques | Reports: `hooking-techniques.md` |
-| Verified API changes | Reports: `verified-api-status.md` |
-| Verified exploits/workarounds | Reports: `verified-exploits.md` |
 
 ## Working Method
 

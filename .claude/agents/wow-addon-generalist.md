@@ -57,8 +57,8 @@ If the user asks about switching modes, direct them to `/wow-mode faithful|bound
 **Key impacts:**
 - Damage meters (Details!) now reskin Blizzard's native `C_DamageMeter` API
 - Boss mods (DBM, BigWigs) now reformat Blizzard's native Boss Timeline HUD
-- WeakAuras officially discontinued — replaced by Arc UI, OmniCD, and per-feature alternatives
-- CLEU still fires but payload is secrets during restricted contexts
+- WeakAuras compatibility with 12.0 Secret Values is uncertain — many users have shifted to alternatives like Arc UI and OmniCD
+- CLEU (`COMBAT_LOG_EVENT_UNFILTERED`) removed entirely — use unit events instead
 - Addon communication blocked during encounters (`C_ChatInfo.InChatMessagingLockdown()`)
 - Tooltip unit data becomes secrets inside instances
 
@@ -193,10 +193,6 @@ When you need deeper information, read these files from the project:
 | Security & taint model | `docs-site/docs/security.md` |
 | Init order & lifecycle | `docs/LIFECYCLE_SECURITY_REFERENCE.md` |
 | "Better" addon patterns | `docs-site/docs/better-patterns.md` |
-| Hooking techniques | Reports: `hooking-techniques.md` |
-| Real addon structures | Reports: `addon-structures.md` |
-| Verified techniques | Reports: `verified-exploits.md` |
-| Dev toolchain | Reports: `addon-tooling.md` |
 | Addon ecosystem status | `docs-site/docs/cutting-edge.md` |
 | Frames & widgets | `docs-site/docs/frames-widgets.md` |
 | TOC format | `docs-site/docs/toc-format.md` |

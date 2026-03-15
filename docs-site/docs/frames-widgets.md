@@ -340,23 +340,23 @@ title:SetText("My Addon")
 
 ### Event-Driven Frame
 
-!!! warning "Removed in Patch 12.0 (Midnight)"
-    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed in Patch 12.0**. The example below is for pre-12.0 reference only. See [Midnight Changes](midnight.md) for migration guidance.
+!!! warning "CLEU Removed in Patch 12.0 (Midnight)"
+    `COMBAT_LOG_EVENT_UNFILTERED` (CLEU) was **removed entirely in Patch 12.0** — it no longer fires at all. The example below uses `UNIT_HEALTH` as the modern replacement. See [Midnight Changes](midnight.md) for full migration guidance.
 
 ```lua
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_LOGOUT")
-frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+frame:RegisterUnitEvent("UNIT_HEALTH", "player")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         print("Addon loaded!")
     elseif event == "PLAYER_LOGOUT" then
         -- Save data
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        local _, subEvent = CombatLogGetCurrentEventInfo()
-        -- Process combat events
+    elseif event == "UNIT_HEALTH" then
+        local unit = ...
+        print("Health: " .. UnitHealth(unit) .. "/" .. UnitHealthMax(unit))
     end
 end)
 ```

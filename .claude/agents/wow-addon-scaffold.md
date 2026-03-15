@@ -135,7 +135,7 @@ MyAddon/
 ## AddonCompartmentFunc: {AddonName}_OnCompartmentClick
 ## AddonCompartmentFuncOnEnter: {AddonName}_OnCompartmentEnter
 ## AddonCompartmentFuncOnLeave: {AddonName}_OnCompartmentLeave
-## Category-enUS: {Category}
+## Category: {Category}
 ## OptionalDeps: LibStub, CallbackHandler-1.0
 ## X-Curse-Project-ID:
 ## X-Wago-ID:
@@ -390,7 +390,7 @@ function ns:RegisterSettings()
         local variable = "enabled"
         local name = "Enable " .. addonName
         local tooltip = "Toggle the addon on or off"
-        local setting = Settings.RegisterAddOnSetting(category, variable, variable, ns.db, Settings.VarType.Boolean, name, ns.defaults.enabled)
+        local setting = Settings.RegisterAddOnSetting(category, variable, variable, ns.db, type(true), name, ns.defaults.enabled)
         Settings.CreateCheckbox(category, setting, tooltip)
         setting:SetValueChangedCallback(function(_, val)
             ns.db.enabled = val
@@ -681,11 +681,8 @@ When generating addons, read these for patterns and best practices:
 
 | Topic | File |
 |-------|------|
-| Real addon structures | Reports: `addon-structures.md` |
 | Template showcase | `docs-site/docs/starter-template.md` |
-| Build tooling | Reports: `addon-tooling.md` |
 | TOC format reference | `docs-site/docs/toc-format.md` |
-| Existing templates | Reports: `template-repos.md` |
 | Code templates | `docs-site/docs/code-templates.md` |
 | Midnight patterns | `docs-site/docs/midnight-patterns.md` |
 | Init lifecycle | `docs/LIFECYCLE_SECURITY_REFERENCE.md` |

@@ -1,6 +1,6 @@
 # WoW Midnight Addon Template (Patch 12.0+)
 
-A production-ready starter template and comprehensive documentation site for World of Warcraft addon development targeting Patch 12.0 (Midnight) and beyond. Includes a complete addon template, a 26-page docs site, and AI-powered development tools.
+A production-ready starter template and comprehensive documentation site for World of Warcraft addon development targeting Patch 12.0 (Midnight) and beyond. Includes a complete addon template, a 33-page docs site, and AI-powered development tools.
 
 **Interface version:** `120001` | **Lua:** 5.1 | **Target:** Midnight (12.0+)
 
