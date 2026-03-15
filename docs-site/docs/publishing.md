@@ -125,11 +125,11 @@ Here's the full `release.yml` from the template, annotated:
 ```yaml title=".github/workflows/release.yml"
 name: Package and Release
 
-# Trigger: any tag push (v1.0.0, v2.1.0-beta, etc.)
+# Trigger: version tag pushes (v1.0.0, v2.1.0-beta, etc.)
 on:
   push:
     tags:
-      - "**"
+      - "v*"
 
 jobs:
   # ---- Step 1: Lint ----
