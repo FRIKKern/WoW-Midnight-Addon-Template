@@ -341,6 +341,7 @@ local SEVERITY_MULT = {
     [2] = 1.0,  -- medium: full color
     [3] = 1.0,  -- critical: full color + glow
 }
+```
 
 | Event Type | Color | Hex | Rationale |
 |------------|-------|-----|-----------|
@@ -351,7 +352,6 @@ local SEVERITY_MULT = {
 | Phase Transition | Gold | `#FFD100` | High visibility — strategic moment |
 | Movement (custom) | Blue | `#3399FF` | Calm but important — repositioning |
 | Healing Check (custom) | Green | `#33CC66` | Healer awareness — incoming damage |
-```
 
 !!! tip "The color table above is a documentation reference"
     The actual Lua color table is defined at the top of the file. The Markdown table is for your reference when customizing colors.
@@ -987,7 +987,7 @@ ns.phaseNotes[2902] = {
 |----------|------|
 | Verify C_EncounterEvents API | Use `/wow-research C_EncounterEvents` |
 | Verify code patterns | Use `/wow-verify` on your hooks |
-| Boundary Pusher mode reference | [Modes: Boundary Pusher](../index.md) |
+| Boundary Pusher mode reference | [Modes: Boundary Pusher](../plugin/modes.md) |
 | Midnight coding patterns | [Coding for Midnight](../midnight-patterns.md) |
 | Enhancement tutorials | [Enhancement Tutorials](../enhancement-tutorials.md) |
 | Cutting-edge addon news | [Cutting Edge](../cutting-edge.md) |

@@ -208,7 +208,7 @@ Review severity adjusts by mode. In `blizzard-faithful`, any `hooksecurefunc` on
 
 **Invoked agent:** WoW Addon Debugger
 
-Takes an error message, symptom description, or file path with an error and diagnoses the root cause. Categorizes issues into six categories (Secret Values, deprecated APIs, taint, communication lockdown, load failures, event payload changes) and provides targeted fixes with before/after code.
+Takes an error message, symptom description, or file path with an error and diagnoses the root cause. Categorizes issues into nine categories (taint, code errors, silent failures, frame issues, data issues, Secret Values, taint spread, persistence, and initialization order) and provides targeted fixes with before/after code.
 
 **Syntax:**
 

@@ -6,7 +6,7 @@ description: "Advanced build-along tutorial for a full-featured WoW nameplate re
 # Build-Along: PlateStylist — Nameplate Restyler
 
 **Difficulty:** :material-star::material-star::material-star: Advanced |
-**Mode:** :material-rocket: Boundary Pusher |
+**Mode:** :material-rocket-launch: Boundary Pusher |
 **Reading time:** ~35 minutes |
 **Interface:** 120001
 
@@ -57,7 +57,7 @@ Every boundary technique in this tutorial is marked with a `-- BOUNDARY` comment
     end)
     ```
 
-=== ":material-rocket: Boundary Pusher Approach"
+=== ":material-rocket-launch: Boundary Pusher Approach"
 
     ```lua
     -- Persistent: hook the metatable so our color survives Blizzard resets
@@ -292,7 +292,7 @@ The **noop pattern** takes this further. Some textures are re-applied by Blizzar
     overlay:SetColorTexture(0, 0, 0, 0.5)
     ```
 
-=== ":material-rocket: Boundary Pusher"
+=== ":material-rocket-launch: Boundary Pusher"
 
     ```lua
     -- BOUNDARY: Strip defaults, apply clean backdrop

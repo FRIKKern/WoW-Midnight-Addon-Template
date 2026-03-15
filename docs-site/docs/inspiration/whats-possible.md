@@ -484,14 +484,14 @@ Midnight introduced four new aura filter categories that give addons more granul
 ```lua
 -- New filter categories in 12.0
 local AURA_FILTERS = {
-    "HELPFUL",           -- Buffs (existing)
-    "HARMFUL",           -- Debuffs (existing)
-    "PLAYER",            -- Cast by player (existing)
-    "RAID",              -- Raid-wide auras (existing)
-    "MAW",               -- NEW: Midnight-specific zone auras
-    "CANCELABLE",        -- NEW: Player-cancelable only
-    "NOT_CANCELABLE",    -- NEW: Non-cancelable (boss debuffs)
-    "STEALABLE",         -- NEW: Spellstealable/purgeable
+    "HELPFUL",                -- Buffs (existing)
+    "HARMFUL",                -- Debuffs (existing)
+    "PLAYER",                 -- Cast by player (existing)
+    "RAID",                   -- Raid-wide auras (existing)
+    "CROWD_CONTROL",          -- NEW: Stuns, roots, fears, polymorphs, hex
+    "BIG_DEFENSIVE",          -- NEW: Major defensives (Divine Shield, Ice Block)
+    "RAID_PLAYER_DISPELLABLE", -- NEW: Debuffs you can dispel with your class
+    "RAID_IN_COMBAT",         -- NEW: Auras relevant during combat
 }
 
 -- Example: Show only purgeable enemy buffs on nameplates
@@ -616,7 +616,7 @@ Every one of these is an addon waiting to be built.
 
 | Resource | What You'll Find |
 |----------|------------------|
-| [Plugin Overview](../index.md) | How the better-addons AI toolkit works |
+| [Plugin Overview](../plugin/overview.md) | How the better-addons AI toolkit works |
 | [Coding for Midnight](../midnight-patterns.md) | Copy-pasteable code patterns for every 12.0 scenario |
 | [Building Better Addons](../better-addons.md) | The enhancement ecosystem and how to join it |
 | [Blizzard Systems](../blizzard-systems.md) | Edit Mode, CDM, Settings API, Addon Compartment |

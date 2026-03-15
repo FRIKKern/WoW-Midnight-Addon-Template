@@ -275,7 +275,7 @@ end
 
 **Why players want it:** Default nameplates are functional but visually bland. PlateStylist makes them information-dense and attractive while keeping the secure frame infrastructure intact. Unlike full nameplate replacements, it survives Blizzard UI updates gracefully.
 
-**Mode: :material-rocket: Boundary Pusher** — Deep hooks into nameplate frames, walking the line between enhancement and replacement.
+**Mode: :material-rocket-launch: Boundary Pusher** — Deep hooks into nameplate frames, walking the line between enhancement and replacement.
 
 !!! info "Key APIs"
 
@@ -334,7 +334,7 @@ end)
 
 **Why players want it:** Blizzard added a built-in boss ability timeline in Midnight, but it's minimal. BossTimeline+ layers additional context on top — showing when your defensive cooldowns will be available relative to boss abilities, marking phase transitions, and letting raid leaders annotate the timeline with strategy notes.
 
-**Mode: :material-rocket: Boundary Pusher** — Deeply extends Blizzard's encounter timeline system with overlay frames and custom data layers.
+**Mode: :material-rocket-launch: Boundary Pusher** — Deeply extends Blizzard's encounter timeline system with overlay frames and custom data layers.
 
 !!! info "Key APIs"
 

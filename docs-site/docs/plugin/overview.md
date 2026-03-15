@@ -316,7 +316,7 @@ These agents work behind the scenes. You don't invoke them directly — commands
 | :material-magnify: **Researcher** | Verifies API signatures from multiple sources. Returns confidence-tagged findings. |
 | :material-check-decagram: **Reviewer** | Read-only code review. Checks 7 categories, grades A-F. |
 | :material-bug: **Debugger** | Diagnoses errors: taint, Secret Values, events, frames, init order. |
-| :material-swap-horizontal: **Migrator** | Converts pre-12.0 addons to Midnight. 6-phase migration process. |
+| :material-transfer: **Migrator** | Converts pre-12.0 addons to Midnight. 6-phase migration process. |
 | :material-hammer-wrench: **Scaffold** | Generates project structure (TOC, files, CI/CD, linting config). |
 | :material-newspaper: **News Desk** | Tracks addon ecosystem news with swarm research and source verification. |
 | :material-palette: **Skin Designer** | UI enhancement specialist. hooksecurefunc, Mixin, frame skinning patterns. |
