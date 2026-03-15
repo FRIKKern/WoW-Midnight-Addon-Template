@@ -774,6 +774,9 @@ The industry standard. Used by **every major addon** — BetterBags, Cell, Plate
 | `@debug@ ... @end-debug@` | Stripped from release builds |
 | `@alpha@ ... @end-alpha@` | Active only in untagged builds |
 
+!!! tip "Full CI/CD Guide"
+    For the complete walkthrough — from creating your CurseForge project to troubleshooting failed uploads — see the [Publishing & CI/CD guide](publishing.md).
+
 ### CI/CD with GitHub Actions
 
 **Secrets to configure** (Settings > Secrets and variables > Actions):

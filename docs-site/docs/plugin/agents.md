@@ -104,14 +104,14 @@ It also includes a deprecated function mapping — 17 functions that existed in 
 !!! example "Example: Creating an Addon"
     **Input:**
     ```
-    /wow-create a poison reminder for rogues that warns when poisons expire
+    /wow-create a poison reminder for rogues that warns when poisons are missing
     ```
 
     **Output:**
     The Coder generates a complete addon with multiple files:
 
     - `PoisonReminder.toc` — Interface 120001, SavedVariables, AddonCompartment, Category
-    - `Core.lua` — Event dispatch table, UNIT_AURA tracking for poison buffs, expiration timer using C_Timer.NewTicker, Secret Values guards
+    - `Core.lua` — Event dispatch table, UNIT_AURA tracking for poison buffs, periodic poison check using C_Timer.NewTicker, Secret Values guards
     - `Config.lua` — Settings API panel with warning threshold slider and sound toggle
     - `.pkgmeta` — Package configuration for CurseForge/Wago release
     - `.luacheckrc` — Lint configuration with WoW globals declared

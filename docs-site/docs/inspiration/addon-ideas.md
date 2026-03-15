@@ -21,9 +21,9 @@ The bread and butter of addon development. These solve small, specific annoyance
 
 ### PoisonPal — Rogue Poison Reminder :material-star: Beginner { #poisonpal }
 
-**What it does:** Monitors your active poison weapon enchants, warns you when they expire or are missing entirely, and auto-suggests the right poisons based on your current spec and talent build.
+**What it does:** Monitors your active poison buffs, warns you when they're missing, and auto-suggests the right poisons based on your current spec and talent build.
 
-**Why players want it:** Every Rogue has zoned into a dungeon, pulled the first pack, and realized their poisons expired ten minutes ago. PoisonPal eliminates that moment of shame with a subtle reminder on screen and a pre-pull check.
+**Why players want it:** Every Rogue has zoned into a dungeon, pulled the first pack, and realized their poisons aren't applied. PoisonPal eliminates that moment of shame with a subtle reminder on screen and a pre-pull check.
 
 **Mode: :material-shield-check: Blizzard Faithful** — Pure data monitoring with non-intrusive alerts. No frame replacement, no combat interaction.
 
@@ -32,15 +32,15 @@ The bread and butter of addon development. These solve small, specific annoyance
     | API | Purpose |
     |-----|---------|
     | `C_UnitAuras.GetAuraDataByIndex()` | Check active poison buffs on the player |
-    | `GetWeaponEnchantInfo()` | Detect weapon enchant (poison) presence and remaining duration |
+    | `C_UnitAuras.GetPlayerAuraBySpellID()` | Detect active poison buffs by spell ID |
     | `C_ClassTalents.GetActiveConfigID()` | Determine current spec for poison suggestions |
     | `Settings.RegisterAddOnSetting()` | User preferences (alert style, sound toggle) |
     | `AddonCompartmentFunc` | Minimap dropdown access |
 
 **Technical approach:**
 
-- Register `UNIT_AURA`, `PLAYER_ENTERING_WORLD`, `PLAYER_EQUIPMENT_CHANGED`, and `ZONE_CHANGED_NEW_AREA` events
-- On each trigger, call `GetWeaponEnchantInfo()` to check main-hand and off-hand enchant status
+- Register `UNIT_AURA`, `PLAYER_ENTERING_WORLD`, and `ZONE_CHANGED_NEW_AREA` events
+- On each trigger, call `C_UnitAuras.GetPlayerAuraBySpellID()` to check for active lethal and non-lethal poison buffs
 - Compare against a lookup table of poison spell IDs per spec (Assassination vs. Subtlety vs. Outlaw)
 - Show a small alert frame anchored to `UIParent` with a fade-in animation when poisons are missing
 - Suppress alerts in rest areas and non-combat zones via `IsResting()`
@@ -49,8 +49,8 @@ The bread and butter of addon development. These solve small, specific annoyance
 
     ```
     /wow-create PoisonPal — A rogue poison reminder addon that warns when
-    poisons expire or are missing, suggests correct poisons for current spec,
-    uses GetWeaponEnchantInfo and UNIT_AURA, Blizzard Faithful mode
+    poison buffs are missing, suggests correct poisons for current spec,
+    uses C_UnitAuras.GetPlayerAuraBySpellID and UNIT_AURA, Blizzard Faithful mode
     ```
 
 ---

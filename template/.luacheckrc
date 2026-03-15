@@ -70,6 +70,9 @@ globals = {
     "MyAddon_OnCompartmentClick",
     "MyAddon_OnCompartmentEnter",
     "MyAddon_OnCompartmentLeave",
+
+    -- SlashCmdList — Init.lua writes to it (SlashCmdList["MYADDON"] = ...)
+    "SlashCmdList",
 }
 
 -- ============================================================================
@@ -85,7 +88,6 @@ read_globals = {
     "WorldFrame",
     "GameTooltip",
     "Settings",
-    "SlashCmdList",
     "MinimalSliderWithSteppersMixin",
 
     -- ---- Addon Management ----

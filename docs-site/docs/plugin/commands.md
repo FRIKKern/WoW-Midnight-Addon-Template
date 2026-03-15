@@ -99,7 +99,7 @@ Takes a plain English description of what your addon should do and generates a c
 **Syntax:**
 
 ```
-/wow-create a poison reminder addon that alerts when lethal poison expires
+/wow-create a poison reminder addon that alerts when lethal poison is missing
 /wow-create faithful housing decoration tracker with minimap button
 /wow-create boundary nameplate addon with classification-based coloring
 ```

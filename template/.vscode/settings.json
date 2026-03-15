@@ -1,0 +1,20 @@
+{
+    "Lua.runtime.version": "Lua 5.1",
+    "Lua.runtime.builtin": {
+        "io": "disable",
+        "os": "disable",
+        "package": "disable",
+        "debug": "disable"
+    },
+    "Lua.workspace.ignoreDir": [
+        "Libs",
+        ".release"
+    ],
+    "Lua.diagnostics.globals": [
+        "issecretvalue",
+        "SlashCmdList"
+    ],
+    "files.associations": {
+        "*.toc": "ini"
+    }
+}

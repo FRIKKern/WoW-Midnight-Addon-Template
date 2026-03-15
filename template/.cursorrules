@@ -1,0 +1,30 @@
+WoW addon for Midnight (Patch 12.0+). Interface version 120001. Pure Blizzard API, no Ace3.
+
+REMOVED APIs — never generate code using these:
+- COMBAT_LOG_EVENT_UNFILTERED / CombatLogGetCurrentEventInfo() — gone entirely in 12.0
+- UnitHealth()/UnitHealthMax() for math — returns secret values in combat; use UnitHealthPercent()
+- GetSpellCooldown/GetSpellInfo/GetSpellTexture/IsSpellKnown — use C_Spell.* equivalents
+- ActionHasRange/IsUsableAction/GetActionCooldown/GetActionTexture — use C_ActionBar.* equivalents
+- InterfaceOptions_AddCategory/InterfaceOptionsFrame_OpenToCategory — use Settings.RegisterAddOnCategory/Settings.OpenToCategory
+- EasyMenu/UIDropDownMenu_* — use MenuUtil.CreateContextMenu()
+- GetMouseFocus — use GetMouseFoci() (returns table)
+- SetMinResize/SetMaxResize — use Frame:SetResizeBounds()
+- SendAddonMessage() during encounters — blocked in M+/PvP/boss encounters
+- CombatLogAddFilter/CombatLogResetFilter — removed
+
+SECRET VALUES (critical for combat code):
+During M+/PvP/encounters, many APIs return opaque secret values that CANNOT be compared, used in arithmetic, used as table keys, or tested for truthiness. They CAN be stored, passed to widget setters (StatusBar:SetValue, FontString:SetText), concatenated with strings, and checked with issecretvalue(val).
+Always guard: if issecretvalue(value) then use widget-safe path else do math end.
+Not secret: player secondary resources, UnitIsUnit() comparisons, profession/skyriding spells.
+
+NAMESPACE PATTERN: local addonName, ns = ... — attach everything to ns.*, never create globals except SavedVariables and SLASH_*.
+EVENT DISPATCH: Table dispatch pattern — eventHandlers[event](self, event, ...).
+COMBAT LOCKDOWN: Check InCombatLockdown() before modifying secure frames. Queue actions for PLAYER_REGEN_ENABLED.
+
+ALWAYS: use local for everything, check frame:IsForbidden() before modifying hooked frames, use hooksecurefunc() for post-hooks, use C_Timer.After()/NewTicker() instead of OnUpdate polling.
+NEVER: generate CLEU handlers, call deprecated functions, create globals, call :Hide() on secure Blizzard frames (reparent instead), do arithmetic on potentially secret values.
+
+FILE LOAD ORDER (from .toc): Libs/ → Init.lua → Core.lua → Config.lua
+SETTINGS API: Settings.RegisterAddOnSetting(), Settings.CreateCheckbox/Slider/Dropdown(), Settings.RegisterAddOnCategory()
+BUILD: luacheck . to lint, git tag + push for release via BigWigsMods/packager
+TEST: /reload, /dump, /console scriptErrors 1, BugGrabber + BugSack

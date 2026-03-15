@@ -173,6 +173,15 @@ function ns:RegisterSettings()
     -- end
 
     -- ================================================================
+    -- Section Headers (optional, for organizing larger settings panels)
+    -- ================================================================
+    -- Uncomment to add a visual separator between control groups:
+    --
+    -- local headerText = Settings.CreateControlTextContainer()
+    -- headerText:Add("Appearance")
+    -- Settings.CreateControls(category, headerText)
+
+    -- ================================================================
     -- Register the category in the AddOns tab
     -- ================================================================
     -- This MUST be called last. After this, the category appears in

@@ -673,6 +673,9 @@ Interface/AddOns/SettingsFrame/
     end
     ```
 
+!!! warning "Legacy Template"
+    `InterfaceOptionsCheckButtonTemplate` is a legacy template from the deprecated InterfaceOptions system. It still works for custom settings frames (as shown above), but for integrating with the Blizzard settings panel use the modern Settings API (`Settings.RegisterAddOnSetting` + `Settings.CreateCheckbox`). See the [Blizzard Systems guide](../blizzard-systems.md) for the modern approach.
+
 ---
 
 ## 4. Minimap Button & Addon Compartment
@@ -2185,6 +2188,9 @@ Interface/AddOns/ProductionAddon/
         GameTooltip:Hide()
     end
     ```
+
+!!! warning "Legacy Template"
+    `InterfaceOptionsCheckButtonTemplate` is a legacy template from the deprecated InterfaceOptions system. It still works for custom settings frames (as shown above), but for integrating with the Blizzard settings panel use the modern Settings API (`Settings.RegisterAddOnSetting` + `Settings.CreateCheckbox`). See the [Blizzard Systems guide](../blizzard-systems.md) for the modern approach.
 
 !!! tip "File load order matters"
     The TOC lists files in load order. `Init.lua` defines shared utilities and the namespace. `Core.lua` handles events and slash commands, calling functions defined in both `Init.lua` and `Config.lua`. `Config.lua` creates the UI panel. Because `Config.lua` defines `ns:CreateConfigPanel()` as a function (not immediate execution), `Core.lua` can safely call it during `PLAYER_LOGIN` even though `Config.lua` is listed last — the function exists by the time the event fires.

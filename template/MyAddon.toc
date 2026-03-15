@@ -16,15 +16,8 @@
 ## 120001 = Patch 12.0.1 (Midnight). Update this when new patches ship.
 ## You can list multiple versions: 120001, 110002, 40402
 ## Interface: 120001
-
-## Title is what players see in the addon list. Color codes allowed.
 ## Title: MyAddon
-
-## Notes appear as a tooltip in the addon list. Keep it short.
-## Notes: A Midnight-ready addon template with modern patterns.
-
-## Author and Version are displayed in the addon management panel.
-## @project-version@ is replaced by BigWigsMods/packager at build time.
+## Notes: A starter addon built with the Midnight Addon Template.
 ## Author: YourName
 ## Version: @project-version@
 
@@ -32,11 +25,8 @@
 ## These global Lua variable names are persisted across sessions.
 ## The client reads/writes them from WTF/Account/.../SavedVariables/MyAddon.lua
 ## They are NOT available until ADDON_LOADED fires for YOUR addon.
-##
-## Account-wide saved data:
 ## SavedVariables: MyAddonDB
-##
-## Per-character saved data (stored per character, not shared):
+## Per-character saved data (uncomment if needed):
 ## SavedVariablesPerCharacter: MyAddonCharDB
 
 ## ---- Addon Compartment (Minimap Dropdown) ----
@@ -49,22 +39,25 @@
 ## ---- Icon ----
 ## IconTexture is shown in the addon list and the Addon Compartment dropdown.
 ## Use a standard WoW icon path or a custom texture in your addon folder.
-## IconTexture: Interface\Icons\INV_Misc_Gear_01
+## IconTexture: Interface\AddOns\MyAddon\icon
 
 ## ---- Optional Dependencies ----
 ## These addons load BEFORE yours if present, but yours still loads if they're missing.
-## List libraries and addons you integrate with. The packager uses this for dependency metadata.
-## OptionalDeps: LibStub, CallbackHandler-1.0, Ace3, LibDataBroker-1.1, Masque
+## List libraries and addons you integrate with.
+## OptionalDeps: LibStub, CallbackHandler-1.0
 
 ## ---- Distribution Platform IDs ----
 ## These are used by BigWigsMods/packager to upload to the correct project.
 ## Get your IDs from each platform's project page.
-## Uncomment and fill in when you create your projects:
-## X-Curse-Project-ID: 123456
-## X-Wago-ID: abcdefgh
-## X-WoWI-ID: 12345
+## Replace with your real IDs when you create your projects.
+## X-Curse-Project-ID: 0
+## X-Wago-ID: CHANGEME
+## X-WoWI-ID: 0
 
-## ---- Custom Metadata ----
+## ---- Category ----
+## Category: Miscellaneous
+
+## ---- Custom Metadata (Optional) ----
 ## You can define arbitrary X- fields for use in your addon code.
 ## Read them with C_AddOns.GetAddOnMetadata("MyAddon", "X-MyField")
 ## X-Category: Interface Enhancements

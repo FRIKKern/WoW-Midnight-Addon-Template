@@ -33,6 +33,7 @@ ns.addonName = addonName
 -- ALWAYS define defaults here so the rest of the code can assume
 -- ns.db.settingName exists and has a valid value.
 ns.defaults = {
+    _version = 1,         -- DB schema version (increment when restructuring)
     enabled = true,       -- Master toggle
     scale = 1.0,          -- UI scale multiplier
     showWelcome = true,   -- Show login message
@@ -40,6 +41,50 @@ ns.defaults = {
     xOffset = 0,          -- Horizontal offset
     yOffset = 100,        -- Vertical offset
 }
+
+-- ============================================================================
+-- Secret Values (Midnight 12.0+)
+-- ============================================================================
+-- In M+, PvP, and boss encounters, combat APIs (UnitHealth, spell
+-- cooldowns, etc.) return opaque "secret values" that cannot be
+-- compared, used in arithmetic, or tested for truthiness.
+-- Always guard with issecretvalue() before doing math or comparisons.
+
+--- Whether the Secret Values system is available (12.0+)
+ns.SECRETS_ENABLED = type(issecretvalue) == "function"
+
+--- Safely unwrap a value that might be a secret.
+--- Returns fallback if the value is secret, otherwise returns the value.
+---@param val any
+---@param fallback any
+---@return any
+function ns.SafeValue(val, fallback)
+    if ns.SECRETS_ENABLED and issecretvalue(val) then
+        return fallback
+    end
+    return val
+end
+
+-- ============================================================================
+-- Utilities
+-- ============================================================================
+
+--- Create a debounced version of a function.
+--- Calls fn at most once per `delay` seconds; resets timer on each call.
+---@param delay number Seconds to wait
+---@param fn function Function to call
+---@return function debounced Call this instead of fn directly
+function ns.Debounce(delay, fn)
+    local timer
+    return function(...)
+        if timer then timer:Cancel() end
+        local args = { ... }
+        timer = C_Timer.NewTimer(delay, function()
+            timer = nil
+            fn(unpack(args))
+        end)
+    end
+end
 
 -- ============================================================================
 -- Event Dispatcher
@@ -121,6 +166,20 @@ RegisterEvent("ADDON_LOADED", function(self, event, loadedAddon)
     -- Point ns.db at the SavedVariables table for convenient access.
     -- All other files use ns.db.settingName to read/write settings.
     ns.db = MyAddonDB
+
+    -- ---- SavedVariables Migration ----
+    -- Bump ns.defaults._version when you restructure the DB.
+    -- Add migration blocks here to transform old data:
+    --
+    -- if (ns.db._version or 0) < 2 then
+    --     -- v1 → v2: rename "showWelcome" to "welcomeEnabled"
+    --     if ns.db.showWelcome ~= nil then
+    --         ns.db.welcomeEnabled = ns.db.showWelcome
+    --         ns.db.showWelcome = nil
+    --     end
+    -- end
+    --
+    ns.db._version = ns.defaults._version
 
     -- ---- Per-character SavedVariables (optional) ----
     -- Uncomment if you declared SavedVariablesPerCharacter in the .toc:
@@ -225,7 +284,7 @@ end)
 
 -- Left-click: toggle addon or open settings.
 -- Right-click: open settings.
-function MyAddon_OnCompartmentClick(addonName, buttonName)
+function MyAddon_OnCompartmentClick(_, buttonName)
     if buttonName == "RightButton" then
         if ns.settingsCategoryID then
             Settings.OpenToCategory(ns.settingsCategoryID)
@@ -244,7 +303,7 @@ function MyAddon_OnCompartmentClick(addonName, buttonName)
 end
 
 -- Mouse enters the compartment button: show a tooltip.
-function MyAddon_OnCompartmentEnter(addonName, menuButtonFrame)
+function MyAddon_OnCompartmentEnter(_, menuButtonFrame)
     GameTooltip:SetOwner(menuButtonFrame, "ANCHOR_LEFT")
     GameTooltip:SetText(addonName)
     GameTooltip:AddLine("Left-click to toggle.", 1, 1, 1)
@@ -253,6 +312,6 @@ function MyAddon_OnCompartmentEnter(addonName, menuButtonFrame)
 end
 
 -- Mouse leaves the compartment button: hide the tooltip.
-function MyAddon_OnCompartmentLeave(addonName, menuButtonFrame)
+function MyAddon_OnCompartmentLeave(_, _menuButtonFrame)
     GameTooltip:Hide()
 end

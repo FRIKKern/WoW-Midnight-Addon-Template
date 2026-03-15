@@ -142,6 +142,12 @@ end
 -- ============================================================================
 -- Update the info display with current player data.
 -- This demonstrates reading game data and formatting it for display.
+--
+-- Note: In Midnight 12.0+, some combat APIs return "secret values" during
+-- M+, PvP, and boss encounters. Use ns.SafeValue() to guard any value
+-- before using it in string formatting or comparisons. Widget setters
+-- (StatusBar:SetValue, FontString:SetText) accept secret values directly
+-- — only guard when doing Lua-side math or format().
 
 local function UpdateInfoDisplay()
     local frame = ns.infoFrame
@@ -149,14 +155,18 @@ local function UpdateInfoDisplay()
 
     local name = UnitName("player")
     local _, className = UnitClass("player")
-    local level = UnitLevel("player")
     local classColor = RAID_CLASS_COLORS[className]
+
+    -- UnitLevel() can return a secret value during M+/PvP/encounters in
+    -- Midnight 12.0+. Guard before using in format() or comparisons.
+    local level = UnitLevel("player")
+    level = ns.SafeValue(level, "??")  -- Falls back to "??" if secret
 
     local lines = {}
     lines[1] = format("Player: %s%s|r",
         classColor and classColor:GenerateHexColorMarkup() or "|cffffffff",
         name or "Unknown")
-    lines[2] = format("Level: %d", level or 0)
+    lines[2] = format("Level: %s", level)
     lines[3] = format("Zone: %s", GetZoneText() or "Unknown")
 
     frame.infoText:SetText(table.concat(lines, "\n"))
@@ -271,7 +281,10 @@ function ns:Enable()
     -- Start periodic updates.
     StartPeriodicUpdate()
 
-    -- Set up hooks (only once — hooksecurefunc cannot be unhooked).
+    -- Set up hooks ONCE. hooksecurefunc() is permanent — calling it again
+    -- on the same function stacks another hook, causing duplicate work and
+    -- potential performance issues. The ns.hooksApplied flag ensures we
+    -- only install hooks on the first Enable() call.
     if not ns.hooksApplied then
         SetupHooks()
         ns.hooksApplied = true

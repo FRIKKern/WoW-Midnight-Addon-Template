@@ -39,7 +39,7 @@ name: Package and Release
 on:
   push:
     tags:
-      - "**"
+      - "v*"
 
 jobs:
   # ---- Lint (optional but recommended) ----

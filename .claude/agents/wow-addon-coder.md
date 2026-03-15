@@ -249,6 +249,20 @@ else
 end
 ```
 
+**Recommended utility from `template/Init.lua`:**
+```lua
+ns.SECRETS_ENABLED = type(issecretvalue) == "function"
+
+function ns.SafeValue(val, fallback)
+    if ns.SECRETS_ENABLED and issecretvalue(val) then
+        return fallback
+    end
+    return val
+end
+
+-- Usage: local health = ns.SafeValue(UnitHealth("target"), 0)
+```
+
 **What is NOT secret** (always readable):
 - Player's own health/power (`UnitHealthMax("player")` is non-secret)
 - Player secondary resources (Combo Points, Holy Power, Soul Shards, Chi, Runes, Arcane Charges, Essence)
@@ -600,6 +614,13 @@ function eventHandlers:ADDON_LOADED(loadedAddon)
     end
 
     ns.db = MyAddonDB
+
+    -- Migration stub — bump ns.defaults._version when restructuring
+    -- if (ns.db._version or 0) < 2 then
+    --     -- v1 → v2: rename old keys, restructure data
+    -- end
+    ns.db._version = ns.defaults._version
+
     self:UnregisterEvent("ADDON_LOADED")
 end
 ```
@@ -832,15 +853,25 @@ end)
 
 ### Event Debouncing
 
+The template ships with `ns.Debounce()` (see `template/Init.lua`):
 ```lua
-local debounceTimer
-local function RequestRefresh()
-    if debounceTimer then debounceTimer:Cancel() end
-    debounceTimer = C_Timer.NewTimer(0.05, function()
-        -- Do the actual refresh work
-        debounceTimer = nil
-    end)
+-- Creates a debounced version of fn; resets timer on each call
+function ns.Debounce(delay, fn)
+    local timer
+    return function(...)
+        if timer then timer:Cancel() end
+        local args = { ... }
+        timer = C_Timer.NewTimer(delay, function()
+            timer = nil
+            fn(unpack(args))
+        end)
+    end
 end
+
+-- Usage:
+local debouncedRefresh = ns.Debounce(0.05, function()
+    -- Do the actual refresh work
+end)
 ```
 
 ### Deferred Skin Registration
@@ -1018,16 +1049,25 @@ MyAddon/
 ## How You Work
 
 1. **Understand the request fully** before writing code. Ask clarifying questions if needed.
-2. **Generate complete, working addon code** — full addon structure (TOC + Lua files) that can be dropped into `Interface/AddOns/` and work immediately.
-3. **Always target Interface 120001** (WoW 12.0.1 Midnight).
-4. **Run the verification checklist** mentally before presenting any code.
-5. **When you need API details beyond this spec**, use the Agent tool to spawn a `WoW Addon Researcher` subagent.
-6. **Use consistent code style:**
+2. **Always read `template/` directory first** — the project's own template is the gold standard. Read `template/Init.lua`, `template/Core.lua`, and `template/Config.lua` for the latest patterns before generating code.
+3. **Generate complete, working addon code** — full addon structure (TOC + Lua files) that can be dropped into `Interface/AddOns/` and work immediately.
+4. **Always target Interface 120001** (WoW 12.0.1 Midnight).
+5. **Run the verification checklist** mentally before presenting any code.
+6. **When you need API details beyond this spec**, use the Agent tool to spawn a `WoW Addon Researcher` subagent.
+7. **Use consistent code style:**
    - 4-space indentation
    - PascalCase for frame names and global functions
    - camelCase for local variables and methods
    - UPPER_CASE for constants
    - Prefix global names with addon name to avoid collisions
+
+### Gold Standard: `template/` Directory
+
+The `template/` directory in this project is the **primary source of truth** for patterns. Always read it before generating code:
+- `template/Init.lua` — namespace, defaults, Secret Values helpers, Debounce, event dispatch, SavedVariables migration, slash commands, compartment
+- `template/Core.lua` — combat queue, feature logic, event handlers
+- `template/Config.lua` — modern Settings API registration
+- `template/CLAUDE.md` — AI coding instructions for generated addons
 
 ### Reference Addon Repositories
 

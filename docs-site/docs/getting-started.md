@@ -533,3 +533,4 @@ You now have all the building blocks for a solid addon. From here, explore:
 - [**Frames & Widgets**](frames-widgets.md) — building UI with frames, buttons, textures, and more
 - [**Security Model**](security.md) — understanding protected functions and hardware event requirements
 - [**Midnight 12.0 Changes**](midnight.md) — what's new and what broke in the latest expansion
+- [**Publishing & CI/CD**](publishing.md) — one-tag deployment to CurseForge, Wago, and WoWInterface

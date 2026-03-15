@@ -20,11 +20,16 @@ Parse `$ARGUMENTS` for:
 ### Step 2: Read the Template
 
 Read these template files for patterns:
-- `template/MyAddon.toc` — TOC format and metadata
-- `template/Init.lua` — Namespace and initialization pattern
-- `template/Core.lua` — Event dispatch and main logic
-- `template/Config.lua` — Settings and SavedVariables
-- `template/CLAUDE.md` — API reference and conventions
+- `template/MyAddon.toc` — TOC format, metadata, Addon Compartment, Category
+- `template/Init.lua` — Namespace, event dispatch, Secret Values helpers, Debounce, SV migration
+- `template/Core.lua` — Combat queue, draggable frames, hooksecurefunc, issecretvalue guards
+- `template/Config.lua` — Settings API panel with checkbox, slider, dropdown examples
+- `template/CLAUDE.md` — AI coding instructions, deprecated API table, Secret Values rules
+- `template/.pkgmeta` — Packager config with externals and nolib support
+- `template/.luacheckrc` — Linter config with WoW globals
+- `template/.github/workflows/release.yml` — CI/CD release pipeline
+- `template/.github/workflows/lint.yml` — CI lint on push/PR
+- `template/Libs/embeds.xml` — Library loader XML
 
 ### Step 3: Research Required APIs
 
@@ -44,9 +49,21 @@ Create all files in a new directory named after the addon. Follow these MANDATOR
 ## Title: AddonName
 ## Notes: Description
 ## Author: [user]
-## Version: 1.0.0
+## Version: @project-version@
 ## SavedVariables: AddonNameDB
 ## IconTexture: Interface\Icons\[appropriate-icon]
+## AddonCompartmentFunc: AddonName_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: AddonName_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: AddonName_OnCompartmentLeave
+## OptionalDeps: LibStub, CallbackHandler-1.0
+## X-Curse-Project-ID: 0
+## X-Wago-ID: CHANGEME
+## Category: [appropriate-category]
+
+#@no-lib-strip@
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+#@end-no-lib-strip@
 
 Init.lua
 Core.lua
@@ -61,6 +78,28 @@ ns.ADDON_NAME = ADDON_NAME
 -- Shared state
 ns.db = {}
 ns.isLoaded = false
+
+-- Secret Values (Midnight 12.0+)
+ns.SECRETS_ENABLED = type(issecretvalue) == "function"
+function ns.SafeValue(val, fallback)
+    if ns.SECRETS_ENABLED and issecretvalue(val) then
+        return fallback
+    end
+    return val
+end
+
+-- Debounce utility
+function ns.Debounce(delay, fn)
+    local timer
+    return function(...)
+        if timer then timer:Cancel() end
+        local args = { ... }
+        timer = C_Timer.NewTimer(delay, function()
+            timer = nil
+            fn(unpack(args))
+        end)
+    end
+end
 ```
 
 **Core.lua — Event Dispatch (MANDATORY):**
@@ -70,11 +109,23 @@ local ADDON_NAME, ns = ...
 local frame = CreateFrame("Frame")
 local events = {}
 
+ns.defaults = {
+    _version = 1,
+    enabled = true,
+    -- addon-specific defaults here
+}
+
 function events:ADDON_LOADED(addonName)
     if addonName ~= ADDON_NAME then return end
-    -- Initialize SavedVariables
+    -- Initialize SavedVariables with defaults merge
     AddonNameDB = AddonNameDB or {}
+    for key, default in pairs(ns.defaults) do
+        if AddonNameDB[key] == nil then
+            AddonNameDB[key] = default
+        end
+    end
     ns.db = AddonNameDB
+    ns.db._version = ns.defaults._version  -- migration stamp
     ns.isLoaded = true
     frame:UnregisterEvent("ADDON_LOADED")
 end
@@ -141,10 +192,17 @@ Write all files to a directory. Provide a summary:
 ## Addon Created: [Name]
 
 **Files:**
-- `[Name]/[Name].toc` — Interface 120001
-- `[Name]/Init.lua` — Namespace setup
-- `[Name]/Core.lua` — Main logic
-- `[Name]/Config.lua` — Settings (if needed)
+- `[Name]/[Name].toc` — Interface 120001, Addon Compartment, Category
+- `[Name]/Init.lua` — Namespace, Secret Values, Debounce, SV migration, slash commands
+- `[Name]/Core.lua` — Main logic, event handlers, combat queue
+- `[Name]/Config.lua` — Settings panel (if needed)
+- `[Name]/CLAUDE.md` — AI coding instructions
+- `[Name]/.pkgmeta` — Packager config with externals
+- `[Name]/.luacheckrc` — Linter config with addon globals
+- `[Name]/.github/workflows/release.yml` — Tag → package → upload
+- `[Name]/.github/workflows/lint.yml` — Luacheck on push/PR
+- `[Name]/.gitignore` — Ignores Libs/, .release/, *.zip
+- `[Name]/.editorconfig` — Consistent formatting
 
 **Features:**
 - [bullet list of what the addon does]

@@ -53,7 +53,7 @@ MyAddon/
 
 **When to use:** Single-purpose addons, quality-of-life tweaks, personal utilities.
 
-### Tier 2: Standard (6-8 files)
+### Tier 2: Standard (12-16 files)
 
 For feature-complete addons with settings, saved data, and proper structure.
 
@@ -63,11 +63,20 @@ MyAddon/
 ├── Init.lua
 ├── Core.lua
 ├── Config.lua
+├── Libs/
+│   └── embeds.xml
 ├── .pkgmeta
 ├── .luacheckrc
+├── .gitignore
+├── .editorconfig
+├── .luarc.json
 ├── .github/
 │   └── workflows/
-│       └── release.yml
+│       ├── release.yml
+│       └── lint.yml
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
 └── CLAUDE.md
 ```
 
@@ -148,12 +157,52 @@ Config.lua
 local addonName, ns = ...
 
 -- ============================================================
--- Defaults
+-- Namespace Setup
 -- ============================================================
+ns.addonName = addonName
+
 ns.defaults = {
+    _version = 1,         -- DB schema version (increment when restructuring)
     enabled = true,
     -- Add your default settings here
 }
+
+-- ============================================================
+-- Secret Values (Midnight 12.0+)
+-- ============================================================
+-- In M+, PvP, and boss encounters, combat APIs return opaque
+-- "secret values" that cannot be compared or used in arithmetic.
+-- Always guard with issecretvalue() before doing math.
+
+--- Whether the Secret Values system is available (12.0+)
+ns.SECRETS_ENABLED = type(issecretvalue) == "function"
+
+--- Safely unwrap a value that might be a secret.
+--- Returns fallback if the value is secret, otherwise returns the value.
+function ns.SafeValue(val, fallback)
+    if ns.SECRETS_ENABLED and issecretvalue(val) then
+        return fallback
+    end
+    return val
+end
+
+-- ============================================================
+-- Utilities
+-- ============================================================
+
+--- Create a debounced version of a function.
+--- Calls fn at most once per `delay` seconds; resets timer on each call.
+function ns.Debounce(delay, fn)
+    local timer
+    return function(...)
+        if timer then timer:Cancel() end
+        local args = { ... }
+        timer = C_Timer.NewTimer(delay, function()
+            timer = nil
+            fn(unpack(args))
+        end)
+    end
+end
 
 -- ============================================================
 -- Event Dispatcher
@@ -171,14 +220,20 @@ local function RegisterEvent(event, handler)
     eventFrame:RegisterEvent(event)
 end
 
+local function UnregisterEvent(event)
+    eventHandlers[event] = nil
+    eventFrame:UnregisterEvent(event)
+end
+
 ns.RegisterEvent = RegisterEvent
+ns.UnregisterEvent = UnregisterEvent
 
 -- ============================================================
 -- ADDON_LOADED: SavedVariables + Slash Commands
 -- ============================================================
 RegisterEvent("ADDON_LOADED", function(self, event, loadedName)
     if loadedName ~= addonName then return end
-    eventFrame:UnregisterEvent("ADDON_LOADED")
+    UnregisterEvent("ADDON_LOADED")
 
     -- Initialize SavedVariables
     {AddonName}DB = {AddonName}DB or {}
@@ -189,15 +244,33 @@ RegisterEvent("ADDON_LOADED", function(self, event, loadedName)
     end
     ns.db = {AddonName}DB
 
+    -- ---- SavedVariables Migration ----
+    -- Bump ns.defaults._version when you restructure the DB.
+    -- Add migration blocks here to transform old data:
+    --
+    -- if (ns.db._version or 0) < 2 then
+    --     -- v1 → v2: rename "oldKey" to "newKey"
+    --     if ns.db.oldKey ~= nil then
+    --         ns.db.newKey = ns.db.oldKey
+    --         ns.db.oldKey = nil
+    --     end
+    -- end
+    --
+    ns.db._version = ns.defaults._version
+
     -- Slash commands
     SLASH_{ADDON_UPPER}1 = "/{slashcmd}"
     SlashCmdList["{ADDON_UPPER}"] = function(msg)
         local cmd = strlower(strtrim(msg))
         if cmd == "config" or cmd == "options" then
-            Settings.OpenToCategory(ns.categoryID)
+            if ns.settingsCategoryID then
+                Settings.OpenToCategory(ns.settingsCategoryID)
+            end
+        elseif cmd == "toggle" then
+            ns.db.enabled = not ns.db.enabled
+            if ns.db.enabled then ns:Enable() else ns:Disable() end
         else
-            -- Default action
-            print("|cff00ccff{AddonName}|r: Use /{slashcmd} config")
+            print("|cff00ccff{AddonName}|r: Use /{slashcmd} config | toggle")
         end
     end
 
@@ -211,7 +284,8 @@ end)
 -- PLAYER_LOGIN: Addon ready
 -- ============================================================
 RegisterEvent("PLAYER_LOGIN", function(self, event)
-    if ns.Enable then
+    UnregisterEvent("PLAYER_LOGIN")
+    if ns.db.enabled and ns.Enable then
         ns:Enable()
     end
 end)
@@ -219,20 +293,32 @@ end)
 -- ============================================================
 -- Addon Compartment (minimap dropdown)
 -- ============================================================
-function {AddonName}_OnCompartmentClick(_, button)
-    if button == "LeftButton" then
-        Settings.OpenToCategory(ns.categoryID)
+function {AddonName}_OnCompartmentClick(addonName, buttonName)
+    if buttonName == "RightButton" then
+        if ns.settingsCategoryID then
+            Settings.OpenToCategory(ns.settingsCategoryID)
+        end
+    else
+        if ns.db then
+            ns.db.enabled = not ns.db.enabled
+            if ns.db.enabled then
+                if ns.Enable then ns:Enable() end
+            else
+                if ns.Disable then ns:Disable() end
+            end
+        end
     end
 end
 
-function {AddonName}_OnCompartmentEnter(_, menuButtonFrame)
+function {AddonName}_OnCompartmentEnter(addonName, menuButtonFrame)
     GameTooltip:SetOwner(menuButtonFrame, "ANCHOR_LEFT")
-    GameTooltip:AddLine("{AddonName}")
-    GameTooltip:AddLine("Click to open settings", 1, 1, 1)
+    GameTooltip:SetText("{AddonName}")
+    GameTooltip:AddLine("Left-click to toggle.", 1, 1, 1)
+    GameTooltip:AddLine("Right-click for settings.", 1, 1, 1)
     GameTooltip:Show()
 end
 
-function {AddonName}_OnCompartmentLeave()
+function {AddonName}_OnCompartmentLeave(addonName, menuButtonFrame)
     GameTooltip:Hide()
 end
 ```
@@ -367,6 +453,7 @@ ignore = {
 
 globals = {
     "SLASH_{ADDON_UPPER}1",
+    "SlashCmdList",
     "{AddonName}DB",
     "{AddonName}CharDB",
     "{AddonName}_OnCompartmentClick",
@@ -376,7 +463,7 @@ globals = {
 
 read_globals = {
     -- Core
-    "CreateFrame", "UIParent", "GameTooltip", "Settings", "SlashCmdList",
+    "CreateFrame", "UIParent", "GameTooltip", "Settings",
     "MinimalSliderWithSteppersMixin",
 
     -- Units
@@ -423,7 +510,7 @@ name: Package and Release
 on:
   push:
     tags:
-      - "**"
+      - "v*"
 
 jobs:
   lint:
@@ -451,20 +538,51 @@ jobs:
       - uses: BigWigsMods/packager@v2
 ```
 
+### .github/workflows/lint.yml
+
+```yaml
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  luacheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Luacheck
+        uses: nebularg/actions-luacheck@v1
+        with:
+          args: -q
+```
+
 ### .gitignore
 
 ```
-# Packager output
+# BigWigsMods/packager output
 .release/
 
-# Libraries (fetched by packager)
+# External libraries (fetched by packager from .pkgmeta)
 Libs/
 
-# Editor files
+# IDE and editor files
 .vscode/
+.idea/
 *.swp
+*.swo
 *~
 .DS_Store
+Thumbs.db
+
+# Lua language server
+.luarc.json
 ```
 
 ### CLAUDE.md
@@ -528,12 +646,18 @@ Always generate files in this order:
 1. `.pkgmeta` — defines external dependencies
 2. `.gitignore` — exclude generated dirs
 3. `.luacheckrc` — static analysis config
-4. `{AddonName}.toc` — addon metadata and load order
-5. `Init.lua` — namespace, events, ADDON_LOADED
-6. `Core.lua` — main functionality
-7. `Config.lua` — settings panel
-8. `.github/workflows/release.yml` — CI/CD
-9. `CLAUDE.md` — AI development context
+4. `.editorconfig` — editor formatting rules
+5. `{AddonName}.toc` — addon metadata and load order
+6. `Libs/embeds.xml` — library loading manifest
+7. `Init.lua` — namespace, events, Secret Values utils, ADDON_LOADED
+8. `Core.lua` — main functionality
+9. `Config.lua` — settings panel
+10. `.github/workflows/release.yml` — release CI/CD
+11. `.github/workflows/lint.yml` — PR/push linting
+12. `README.md` — project documentation
+13. `LICENSE` — license file
+14. `CHANGELOG.md` — version history
+15. `CLAUDE.md` — AI development context
 
 ---
 
@@ -571,7 +695,7 @@ When generating addons, read these for patterns and best practices:
 ## Working Method
 
 1. **Determine the tier** based on addon complexity and intended audience.
-2. **Read the project's template/** directory for the latest patterns — this is the gold standard.
+2. **Read the project's `template/` directory first** — it is the canonical, up-to-date reference for all file patterns. The inline templates in this agent definition are summaries; when they conflict with `template/`, the `template/` files win. Key files to read: `template/Init.lua` (Secret Values utils, Debounce, migration system), `template/Core.lua` (issecretvalue guard examples), `template/MyAddon.toc` (Category field, active directives), `template/.github/workflows/release.yml` and `template/.github/workflows/lint.yml`.
 3. **Generate all files** using the templates above, substituting placeholders.
 4. **Customize for the addon's purpose** — add feature-specific patterns.
 5. **Verify** the structure is luacheck-clean and all TOC file paths are correct.
