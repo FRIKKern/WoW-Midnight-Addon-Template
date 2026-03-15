@@ -1018,3 +1018,36 @@ frame:SetScript("OnUpdate", function(self, elapsed)
 end)
 -- Even better: use UNIT_HEALTH event instead of OnUpdate polling
 ```
+
+---
+
+### Mistake 19: Using GetWeaponEnchantInfo() to detect Rogue poisons
+
+Since Dragonflight (10.0), Rogue poisons are **player buffs**, not temporary weapon enchants. AI trained on older code generates `GetWeaponEnchantInfo()` for poison detection — this silently returns no data for poisons and the addon appears broken.
+
+```lua
+-- ❌ WRONG (poisons are not weapon enchants since Dragonflight):
+local hasMainHand, mainExpiration = GetWeaponEnchantInfo()
+if not hasMainHand then
+    print("No poison on main hand!")  -- Always fires, even with poisons applied!
+end
+
+-- ✅ CORRECT (poisons are player buffs, check by spell ID):
+local LETHAL_POISONS = {
+    [2823]   = "Deadly Poison",
+    [315584] = "Instant Poison",
+    [8679]   = "Wound Poison",
+    [381637] = "Amplifying Poison",
+}
+
+for spellID, name in pairs(LETHAL_POISONS) do
+    local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+    if aura then
+        print("Active lethal poison: " .. name)
+        break
+    end
+end
+
+-- Also wrong: listening to UNIT_INVENTORY_CHANGED for poison changes.
+-- ✅ Use UNIT_AURA instead — poisons are buffs, not equipment.
+```

@@ -1,6 +1,6 @@
 ---
 title: "Build-Along: PoisonPal — Rogue Poison Reminder"
-description: Build a complete rogue poison reminder addon from scratch using modern WoW 12.0+ APIs. Covers event handling, weapon enchant detection, Settings API, Addon Compartment, and alert frames.
+description: Build a complete rogue poison reminder addon from scratch using modern WoW 12.0+ APIs. Covers event handling, aura-based poison detection, Settings API, Addon Compartment, and chat alerts.
 ---
 
 # Build-Along: PoisonPal — Rogue Poison Reminder
@@ -14,13 +14,12 @@ description: Build a complete rogue poison reminder addon from scratch using mod
 
 ## Step 1: What We're Building
 
-PoisonPal is a small, focused addon that solves a real problem every Rogue knows: forgetting to apply poisons before a dungeon, or not noticing when they expire mid-session. It watches your weapon enchants, warns you when poisons are missing or about to expire, and gives you quick access through the minimap Addon Compartment.
+PoisonPal is a small, focused addon that solves a real problem every Rogue knows: forgetting to apply poisons before a dungeon or raid. It watches your poison buffs and warns you when a lethal or non-lethal poison is missing.
 
 ### Features
 
 - :material-alert-circle: **Missing poison alerts** — warns in chat when you enter the world without poisons applied
-- :material-timer-alert: **Expiry warnings** — configurable threshold to warn before poisons expire
-- :material-cog: **Settings panel** — enable/disable, warning threshold slider, sound toggle
+- :material-cog: **Settings panel** — enable/disable, sound toggle, login check toggle
 - :material-dots-vertical: **Addon Compartment button** — left-click to check status, right-click for settings
 - :material-sword: **Rogue-only** — silently disables on non-Rogue characters
 
@@ -28,18 +27,27 @@ PoisonPal is a small, focused addon that solves a real problem every Rogue knows
 
 PoisonPal uses the core building blocks you'll need for almost any addon:
 
-- **Event-driven logic** — reacting to `UNIT_INVENTORY_CHANGED` and `PLAYER_ENTERING_WORLD` instead of polling every frame
-- **`GetWeaponEnchantInfo()`** — a real API that returns weapon enchant status, durations, and charges
+- **Event-driven logic** — reacting to `UNIT_AURA` and `PLAYER_ENTERING_WORLD` instead of polling every frame
+- **`C_UnitAuras.GetPlayerAuraBySpellID()`** — the modern aura API for checking player buffs by spell ID
 - **Settings API** — the modern Blizzard settings panel (not the deprecated `InterfaceOptions` system)
 - **Addon Compartment** — the 10.1+ minimap dropdown that replaces LibDataBroker for simple addons
 - **Class filtering** — checking `UnitClass()` to only run on relevant characters
 
 By the end, you'll have a working addon you can install and use immediately, built entirely with official Blizzard APIs in `blizzard-faithful` mode.
 
+!!! danger "Poisons Are Buffs, Not Weapon Enchants"
+    In modern retail WoW (Dragonflight onward), Rogue poisons are **player buffs** — not temporary weapon enchants. You activate a poison ability and it persists as a buff until cancelled or replaced. This means:
+
+    - **`GetWeaponEnchantInfo()` does NOT detect poisons.** It only detects temporary weapon enchants like sharpening stones or weightstones.
+    - **`UNIT_INVENTORY_CHANGED` does NOT fire** when poisons are applied or removed.
+    - **Poisons do not expire.** There is no timer to track — just presence or absence.
+
+    The correct API is `C_UnitAuras.GetPlayerAuraBySpellID(spellID)`, and the correct event is `UNIT_AURA`. AI coding assistants trained on older WoW code will frequently generate `GetWeaponEnchantInfo()` for poison detection — this is wrong for any WoW version from Dragonflight onward.
+
 !!! tip "Plugin Shortcut"
     Want to skip the manual steps? You can generate a similar addon instantly:
     ```
-    /wow-create "faithful rogue poison reminder with expiry warnings and settings panel"
+    /wow-create "faithful rogue poison reminder with settings panel"
     ```
     But building it by hand teaches you the patterns you'll use in every addon.
 
@@ -94,7 +102,7 @@ The `.toc` file is your addon's manifest. WoW reads it to decide what to load an
 ```toc
 ## Interface: 120001
 ## Title: PoisonPal
-## Notes: Rogue poison reminder — warns when poisons are missing or expiring.
+## Notes: Rogue poison reminder — warns when poisons are missing.
 ## Author: YourName
 ## Version: @project-version@
 ## SavedVariables: PoisonPalDB
@@ -138,11 +146,34 @@ ns.addonName = addonName
 -- Default settings (merged into SavedVariables on first load)
 ns.defaults = {
     enabled = true,          -- Master toggle
-    warningThreshold = 300,  -- Warn when poison has < 5 minutes left (seconds)
     playSound = true,        -- Play a sound with warnings
     showOnLogin = true,      -- Check poisons on login
 }
 ```
+
+### Poison Spell ID Tables
+
+Modern Rogue poisons are player buffs. We need to know the spell IDs for each poison so we can check for them using the aura API. Rogues have two poison categories — **lethal** and **non-lethal** — and should always have one of each active.
+
+```lua
+-- Lethal poisons (spell IDs for the player buff)
+local LETHAL_POISONS = {
+    [2823]   = "Deadly Poison",
+    [315584] = "Instant Poison",
+    [8679]   = "Wound Poison",
+    [381637] = "Amplifying Poison",
+}
+
+-- Non-lethal poisons (spell IDs for the player buff)
+local NON_LETHAL_POISONS = {
+    [3408]   = "Crippling Poison",
+    [5761]   = "Numbing Poison",
+    [381664] = "Atrophic Poison",
+}
+```
+
+!!! info "Where Do These Spell IDs Come From?"
+    You can find spell IDs on [Wowhead](https://www.wowhead.com/) by searching for the poison name. The spell ID is in the URL (e.g., `wowhead.com/spell=2823/deadly-poison`). You can also use `/dump C_UnitAuras.GetPlayerAuraBySpellID(2823)` in-game to verify a specific ID returns data when the poison is active.
 
 ### Event Dispatcher
 
@@ -184,54 +215,62 @@ local isRogue = (playerClass == "ROGUE")
 
 ### Poison Check Logic
 
-The core of PoisonPal is `GetWeaponEnchantInfo()`. This API returns information about temporary weapon enchantments — which includes rogue poisons.
+The core of PoisonPal uses `C_UnitAuras.GetPlayerAuraBySpellID()` to check whether the player has an active poison buff. We iterate through each poison table and return the name of the first match found.
 
 ```lua
--- Check weapon enchant status
--- GetWeaponEnchantInfo() returns:
---   hasMainHandEnchant, mainHandExpiration, mainHandCharges, mainHandEnchantID,
---   hasOffHandEnchant, offHandExpiration, offHandCharges, offHandEnchantID
---
--- Expiration is in MILLISECONDS remaining.
+-- Check if the player has any buff from a given poison table
+local function FindActivePoison(poisonTable)
+    for spellID, name in pairs(poisonTable) do
+        local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+        if aura then
+            return name
+        end
+    end
+    return nil
+end
+
+-- Returns: lethalName or nil, nonLethalName or nil
+local function GetPoisonStatus()
+    local lethal = FindActivePoison(LETHAL_POISONS)
+    local nonLethal = FindActivePoison(NON_LETHAL_POISONS)
+    return lethal, nonLethal
+end
 
 local function CheckPoisons()
     if not isRogue or not ns.db or not ns.db.enabled then return end
 
-    local hasMainHand, mainExpiration, _, _,
-          hasOffHand, offExpiration = GetWeaponEnchantInfo()
-
+    local lethal, nonLethal = GetPoisonStatus()
     local warnings = {}
-    local thresholdMs = ns.db.warningThreshold * 1000  -- Convert seconds to ms
 
-    -- Check main hand
-    if not hasMainHand then
-        warnings[#warnings + 1] = "Main hand has no poison!"
-    elseif mainExpiration and mainExpiration < thresholdMs then
-        local mins = math.floor(mainExpiration / 60000)
-        local secs = math.floor((mainExpiration % 60000) / 1000)
-        warnings[#warnings + 1] = string.format(
-            "Main hand poison expires in %d:%02d", mins, secs)
+    if not lethal then
+        warnings[#warnings + 1] = "Lethal poison is MISSING!"
     end
 
-    -- Check off hand
-    if not hasOffHand then
-        warnings[#warnings + 1] = "Off hand has no poison!"
-    elseif offExpiration and offExpiration < thresholdMs then
-        local mins = math.floor(offExpiration / 60000)
-        local secs = math.floor((offExpiration % 60000) / 1000)
-        warnings[#warnings + 1] = string.format(
-            "Off hand poison expires in %d:%02d", mins, secs)
+    if not nonLethal then
+        warnings[#warnings + 1] = "Non-lethal poison is MISSING!"
     end
 
-    return warnings
+    return warnings, lethal, nonLethal
 end
 
 -- Export for Addon Compartment use
 ns.CheckPoisons = CheckPoisons
+ns.GetPoisonStatus = GetPoisonStatus
 ```
 
-!!! info "API Note: GetWeaponEnchantInfo()"
-    `GetWeaponEnchantInfo()` has been in WoW since Classic and remains fully functional in 12.0.1. Expiration values are in **milliseconds**, not seconds. The enchant ID can be used to identify which specific poison is applied, but for a simple reminder addon we only need to know whether an enchant exists and when it expires.
+!!! danger "GetWeaponEnchantInfo() Does NOT Detect Poisons"
+    This is the most common mistake when building a poison reminder addon. AI coding assistants trained on pre-Dragonflight code will generate `GetWeaponEnchantInfo()` for poison detection. **This has not worked for poisons since Dragonflight (10.0).** Poisons are now player buffs detected via `C_UnitAuras.GetPlayerAuraBySpellID(spellID)`.
+
+    ```lua
+    -- ❌ WRONG — does NOT detect modern poisons:
+    local hasMainHand, mainExpiration = GetWeaponEnchantInfo()
+
+    -- ✅ CORRECT — poisons are player buffs:
+    local aura = C_UnitAuras.GetPlayerAuraBySpellID(2823)  -- Deadly Poison
+    if aura then
+        -- Poison is active
+    end
+    ```
 
 ### Alert Output
 
@@ -253,9 +292,23 @@ local function PrintWarnings(warnings)
     end
 end
 
-local function PrintAllClear()
-    print(CHAT_PREFIX .. "|cff00ff00Both weapons poisoned. You're good to go.|r")
+local function PrintStatus()
+    local warnings, lethal, nonLethal = CheckPoisons()
+
+    if lethal then
+        print(CHAT_PREFIX .. "|cff00ff00Lethal:|r " .. lethal)
+    else
+        print(CHAT_PREFIX .. "|cffff6600Lethal:|r None applied")
+    end
+
+    if nonLethal then
+        print(CHAT_PREFIX .. "|cff00ff00Non-lethal:|r " .. nonLethal)
+    else
+        print(CHAT_PREFIX .. "|cffff6600Non-lethal:|r None applied")
+    end
 end
+
+ns.PrintStatus = PrintStatus
 ```
 
 ### Event Handlers
@@ -294,12 +347,7 @@ RegisterEvent("ADDON_LOADED", function(self, event, loadedAddon)
                 Settings.OpenToCategory(ns.settingsCategoryID)
             end
         elseif cmd == "check" then
-            local warnings = CheckPoisons()
-            if warnings and #warnings > 0 then
-                PrintWarnings(warnings)
-            else
-                PrintAllClear()
-            end
+            PrintStatus()
         else
             print(CHAT_PREFIX .. "Commands:")
             print("  /pp check   — Check poison status now")
@@ -318,7 +366,7 @@ RegisterEvent("PLAYER_ENTERING_WORLD", function(self, event, isLogin, isReload)
     if not isRogue or not ns.db or not ns.db.enabled then return end
 
     if ns.db.showOnLogin and (isLogin or isReload) then
-        -- Delay slightly — weapon data may not be ready immediately
+        -- Delay slightly — aura data may not be ready immediately
         C_Timer.After(2, function()
             local warnings = CheckPoisons()
             if warnings and #warnings > 0 then
@@ -328,12 +376,12 @@ RegisterEvent("PLAYER_ENTERING_WORLD", function(self, event, isLogin, isReload)
     end
 end)
 
--- UNIT_INVENTORY_CHANGED: fires when equipment changes (including weapon enchants)
-RegisterEvent("UNIT_INVENTORY_CHANGED", function(self, event, unit)
+-- UNIT_AURA: fires when buffs change on a unit (including poison application/removal)
+RegisterEvent("UNIT_AURA", function(self, event, unit)
     if unit ~= "player" then return end
     if not isRogue or not ns.db or not ns.db.enabled then return end
 
-    -- Check after a brief delay (enchant data updates slightly after the event)
+    -- Check after a brief delay (aura data updates slightly after the event)
     C_Timer.After(0.5, function()
         local warnings = CheckPoisons()
         if warnings and #warnings > 0 then
@@ -343,38 +391,34 @@ RegisterEvent("UNIT_INVENTORY_CHANGED", function(self, event, unit)
 end)
 ```
 
-!!! warning "Why UNIT_INVENTORY_CHANGED, not UNIT_AURA?"
-    Rogue poisons are **weapon enchants**, not auras/buffs. `UNIT_AURA` fires for buffs and debuffs, not weapon enchantments. `UNIT_INVENTORY_CHANGED` fires when equipment changes, including when weapon enchants are applied or removed. This is the correct event for tracking poisons.
+!!! warning "Why UNIT_AURA, not UNIT_INVENTORY_CHANGED?"
+    Rogue poisons are **player buffs** in modern WoW. `UNIT_AURA` fires when buffs and debuffs change on a unit — this is the correct event for detecting poison application and removal. `UNIT_INVENTORY_CHANGED` fires when equipment changes, which does **not** include poison buffs. This is the opposite of what older addon guides (and AI-generated code) will tell you.
 
-### Expiry Timer
+!!! tip "RegisterUnitEvent for Efficiency"
+    For production addons, prefer `eventFrame:RegisterUnitEvent("UNIT_AURA", "player")` over `eventFrame:RegisterEvent("UNIT_AURA")`. The unit-filtered version only fires for the specified unit, avoiding unnecessary handler calls when other units' auras change. We use the simpler form here for clarity.
 
-To warn before poisons expire, we run a periodic check. A `C_Timer.NewTicker` is much better than an `OnUpdate` script — it runs at a defined interval instead of every frame.
+### Periodic Check
+
+Since poisons don't expire in modern WoW, the periodic check is a safety net — it catches edge cases like poisons being removed by mechanics or the player cancelling a buff.
 
 ```lua
--- Periodic check for expiring poisons (runs every 30 seconds)
 RegisterEvent("PLAYER_LOGIN", function()
     if not isRogue then return end
     UnregisterEvent("PLAYER_LOGIN")
 
-    -- Start a ticker that checks poison expiry
-    ns.expiryTicker = C_Timer.NewTicker(30, function()
+    -- Periodic check every 60 seconds as a safety net
+    ns.checkTicker = C_Timer.NewTicker(60, function()
         if not ns.db or not ns.db.enabled then return end
         local warnings = CheckPoisons()
         if warnings and #warnings > 0 then
-            -- Only print expiry warnings, not missing-poison warnings
-            -- (those are handled by UNIT_INVENTORY_CHANGED)
-            for _, msg in ipairs(warnings) do
-                if msg:find("expires in") then
-                    print(CHAT_PREFIX .. "|cffffcc00" .. msg .. "|r")
-                end
-            end
+            PrintWarnings(warnings)
         end
     end)
 end)
 ```
 
 !!! success "Checkpoint"
-    At this point, `Core.lua` handles class detection, SavedVariables, event-driven poison monitoring, expiry warnings, slash commands, and chat alerts. Save the file and move on to the settings panel.
+    At this point, `Core.lua` handles class detection, SavedVariables, event-driven poison monitoring via aura detection, slash commands, and chat alerts. Save the file and move on to the settings panel.
 
 ---
 
@@ -388,8 +432,7 @@ The color coding gives visual urgency:
 |-----------|-----|----------|
 | `\|cff00cc66` | Green | PoisonPal prefix |
 | `\|cffff6600` | Orange | Missing poison warnings |
-| `\|cffffcc00` | Yellow | Expiry warnings |
-| `\|cff00ff00` | Bright green | All-clear messages |
+| `\|cff00ff00` | Bright green | Active poison names / all-clear |
 
 For the sound alert, `PlaySound(SOUNDKIT.RAID_WARNING, "Master")` plays the familiar raid warning sound through the master audio channel, so it's audible even if other sound channels are muted.
 
@@ -437,34 +480,6 @@ function ns:RegisterSettings()
     end
 
     -- ================================================================
-    -- Slider: Warning Threshold
-    -- ================================================================
-    do
-        local setting = Settings.RegisterAddOnSetting(category,
-            "PoisonPal_Threshold",
-            "warningThreshold",
-            ns.db,
-            type(1),                    -- Variable type (number)
-            "Warning Threshold (sec)",
-            ns.defaults.warningThreshold
-        )
-
-        local options = Settings.CreateSliderOptions(
-            60,     -- Minimum: 1 minute
-            600,    -- Maximum: 10 minutes
-            30      -- Step: 30 seconds
-        )
-        options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)
-
-        Settings.CreateSlider(category, setting, options,
-            "Warn when poison has fewer than this many seconds remaining.")
-
-        setting:SetValueChangedCallback(function(_, newValue)
-            ns.db.warningThreshold = newValue
-        end)
-    end
-
-    -- ================================================================
     -- Checkbox: Play Sound
     -- ================================================================
     do
@@ -478,7 +493,7 @@ function ns:RegisterSettings()
         )
 
         Settings.CreateCheckbox(category, setting,
-            "Play the raid warning sound when poisons are missing or expiring.")
+            "Play the raid warning sound when poisons are missing.")
     end
 
     -- ================================================================
@@ -555,12 +570,7 @@ function PoisonPal_OnCompartmentClick(addonName, buttonName)
             Settings.OpenToCategory(ns.settingsCategoryID)
         end
     else
-        local warnings = CheckPoisons()
-        if warnings and #warnings > 0 then
-            PrintWarnings(warnings)
-        else
-            PrintAllClear()
-        end
+        PrintStatus()
     end
 end
 
@@ -570,21 +580,18 @@ function PoisonPal_OnCompartmentEnter(addonName, menuButtonFrame)
     GameTooltip:SetText("PoisonPal")
 
     if isRogue then
-        -- Show current poison status in tooltip
-        local hasMainHand, mainExp, _, _, hasOffHand, offExp = GetWeaponEnchantInfo()
+        local lethal, nonLethal = GetPoisonStatus()
 
-        if hasMainHand then
-            local mins = math.floor((mainExp or 0) / 60000)
-            GameTooltip:AddLine("Main hand: poisoned (" .. mins .. "m)", 0, 1, 0)
+        if lethal then
+            GameTooltip:AddLine("Lethal: " .. lethal, 0, 1, 0)
         else
-            GameTooltip:AddLine("Main hand: NO POISON", 1, 0.4, 0)
+            GameTooltip:AddLine("Lethal: NONE", 1, 0.4, 0)
         end
 
-        if hasOffHand then
-            local mins = math.floor((offExp or 0) / 60000)
-            GameTooltip:AddLine("Off hand: poisoned (" .. mins .. "m)", 0, 1, 0)
+        if nonLethal then
+            GameTooltip:AddLine("Non-lethal: " .. nonLethal, 0, 1, 0)
         else
-            GameTooltip:AddLine("Off hand: NO POISON", 1, 0.4, 0)
+            GameTooltip:AddLine("Non-lethal: NONE", 1, 0.4, 0)
         end
 
         GameTooltip:AddLine(" ")
@@ -602,7 +609,7 @@ function PoisonPal_OnCompartmentLeave(addonName, menuButtonFrame)
 end
 ```
 
-The tooltip is the real value of the Addon Compartment integration. Players can hover over PoisonPal in the minimap dropdown and see their poison status at a glance — green for applied (with remaining time), orange for missing — without clicking anything.
+The tooltip is the real value of the Addon Compartment integration. Players can hover over PoisonPal in the minimap dropdown and see their poison status at a glance — green for active (with poison name), orange for missing — without clicking anything.
 
 !!! info "Addon Compartment vs. LibDBIcon"
     The Addon Compartment is a native Blizzard feature — no library dependency required. It's the `blizzard-faithful` way to add a minimap presence. `LibDBIcon` creates a standalone minimap button with more customization options, but it requires an external library and adds complexity. For most addons, the Compartment is sufficient.
@@ -624,7 +631,7 @@ cp -r PoisonPal "/path/to/World of Warcraft/_retail_/Interface/AddOns/"
 1. Launch WoW and log in on a **Rogue** character
 2. Check the addon list (Game Menu :material-arrow-right: AddOns) — PoisonPal should appear with its icon
 3. After loading in, you should see a warning if poisons aren't applied
-4. Apply poisons and type `/pp check` — you should see the all-clear message
+4. Apply poisons and type `/pp check` — you should see the poison names displayed
 5. Open settings with `/pp config` and verify the controls work
 6. Find PoisonPal in the minimap Addon Compartment dropdown and hover for the tooltip
 7. Log in on a **non-Rogue** character — PoisonPal should be completely silent
@@ -634,7 +641,7 @@ cp -r PoisonPal "/path/to/World of Warcraft/_retail_/Interface/AddOns/"
 ```
 /reload                     -- Reload the UI without logging out
 /dump PoisonPalDB           -- Inspect your SavedVariables
-/dump GetWeaponEnchantInfo() -- Check raw weapon enchant data
+/dump C_UnitAuras.GetPlayerAuraBySpellID(2823)  -- Check Deadly Poison buff
 /console scriptErrors 1     -- Show Lua errors inline
 ```
 
@@ -657,9 +664,10 @@ The Reviewer agent checks for deprecated APIs, taint risks, Secret Values issues
 |---------|-------|-----|
 | "Addon not found" in addon list | Folder name doesn't match `.toc` filename | Ensure both are exactly `PoisonPal` |
 | No warnings appear | SavedVariables `enabled` is false, or not a Rogue | Check `/dump PoisonPalDB` and character class |
+| Poisons applied but addon says missing | Using `GetWeaponEnchantInfo()` instead of `C_UnitAuras` | Modern poisons are buffs — use `C_UnitAuras.GetPlayerAuraBySpellID()` |
 | Settings panel missing | `RegisterSettings` called before `ADDON_LOADED` | Ensure Settings registration happens inside the ADDON_LOADED handler |
 | Slash commands don't work | `SLASH_POISONPAL1` not set as global | Slash command globals must not be `local` |
-| Warnings fire constantly | Expiry ticker interval too short | Adjust the ticker interval or add a cooldown |
+| Warnings fire on every aura change | No debounce on `UNIT_AURA` handler | Use `C_Timer.After(0.5, ...)` to debounce |
 
 ---
 
@@ -696,7 +704,7 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
 
 jobs:
   release:
@@ -742,7 +750,7 @@ Here are the three files in their entirety. Copy these into a `PoisonPal` folder
 ```toc
 ## Interface: 120001
 ## Title: PoisonPal
-## Notes: Rogue poison reminder — warns when poisons are missing or expiring.
+## Notes: Rogue poison reminder — warns when poisons are missing.
 ## Author: YourName
 ## Version: @project-version@
 ## SavedVariables: PoisonPalDB
@@ -761,7 +769,7 @@ Config.lua
 -- ============================================================================
 -- Core.lua — PoisonPal: Rogue Poison Reminder
 -- ============================================================================
--- Monitors weapon enchants (poisons), warns when missing or expiring.
+-- Monitors poison buffs via C_UnitAuras, warns when missing.
 -- Only active on Rogue characters. Uses blizzard-faithful patterns.
 -- ============================================================================
 
@@ -772,9 +780,23 @@ ns.addonName = addonName
 -- Default settings
 ns.defaults = {
     enabled = true,
-    warningThreshold = 300,  -- seconds (5 minutes)
     playSound = true,
     showOnLogin = true,
+}
+
+-- Lethal poisons (spell IDs for the player buff)
+local LETHAL_POISONS = {
+    [2823]   = "Deadly Poison",
+    [315584] = "Instant Poison",
+    [8679]   = "Wound Poison",
+    [381637] = "Amplifying Poison",
+}
+
+-- Non-lethal poisons (spell IDs for the player buff)
+local NON_LETHAL_POISONS = {
+    [3408]   = "Crippling Poison",
+    [5761]   = "Numbing Poison",
+    [381664] = "Atrophic Poison",
 }
 
 -- ============================================================================
@@ -809,6 +831,46 @@ local _, playerClass = UnitClass("player")
 local isRogue = (playerClass == "ROGUE")
 
 -- ============================================================================
+-- Poison Detection (Aura-based)
+-- ============================================================================
+
+local function FindActivePoison(poisonTable)
+    for spellID, name in pairs(poisonTable) do
+        local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+        if aura then
+            return name
+        end
+    end
+    return nil
+end
+
+local function GetPoisonStatus()
+    local lethal = FindActivePoison(LETHAL_POISONS)
+    local nonLethal = FindActivePoison(NON_LETHAL_POISONS)
+    return lethal, nonLethal
+end
+
+local function CheckPoisons()
+    if not isRogue or not ns.db or not ns.db.enabled then return end
+
+    local lethal, nonLethal = GetPoisonStatus()
+    local warnings = {}
+
+    if not lethal then
+        warnings[#warnings + 1] = "Lethal poison is MISSING!"
+    end
+
+    if not nonLethal then
+        warnings[#warnings + 1] = "Non-lethal poison is MISSING!"
+    end
+
+    return warnings, lethal, nonLethal
+end
+
+ns.CheckPoisons = CheckPoisons
+ns.GetPoisonStatus = GetPoisonStatus
+
+-- ============================================================================
 -- Chat Output
 -- ============================================================================
 
@@ -824,45 +886,23 @@ local function PrintWarnings(warnings)
     end
 end
 
-local function PrintAllClear()
-    print(CHAT_PREFIX .. "|cff00ff00Both weapons poisoned. You're good to go.|r")
-end
+local function PrintStatus()
+    local warnings, lethal, nonLethal = CheckPoisons()
 
--- ============================================================================
--- Poison Check
--- ============================================================================
-
-local function CheckPoisons()
-    if not isRogue or not ns.db or not ns.db.enabled then return end
-
-    local hasMainHand, mainExpiration, _, _,
-          hasOffHand, offExpiration = GetWeaponEnchantInfo()
-
-    local warnings = {}
-    local thresholdMs = ns.db.warningThreshold * 1000
-
-    if not hasMainHand then
-        warnings[#warnings + 1] = "Main hand has no poison!"
-    elseif mainExpiration and mainExpiration < thresholdMs then
-        local mins = math.floor(mainExpiration / 60000)
-        local secs = math.floor((mainExpiration % 60000) / 1000)
-        warnings[#warnings + 1] = string.format(
-            "Main hand poison expires in %d:%02d", mins, secs)
+    if lethal then
+        print(CHAT_PREFIX .. "|cff00ff00Lethal:|r " .. lethal)
+    else
+        print(CHAT_PREFIX .. "|cffff6600Lethal:|r None applied")
     end
 
-    if not hasOffHand then
-        warnings[#warnings + 1] = "Off hand has no poison!"
-    elseif offExpiration and offExpiration < thresholdMs then
-        local mins = math.floor(offExpiration / 60000)
-        local secs = math.floor((offExpiration % 60000) / 1000)
-        warnings[#warnings + 1] = string.format(
-            "Off hand poison expires in %d:%02d", mins, secs)
+    if nonLethal then
+        print(CHAT_PREFIX .. "|cff00ff00Non-lethal:|r " .. nonLethal)
+    else
+        print(CHAT_PREFIX .. "|cffff6600Non-lethal:|r None applied")
     end
-
-    return warnings
 end
 
-ns.CheckPoisons = CheckPoisons
+ns.PrintStatus = PrintStatus
 
 -- ============================================================================
 -- ADDON_LOADED
@@ -896,12 +936,7 @@ RegisterEvent("ADDON_LOADED", function(self, event, loadedAddon)
                 Settings.OpenToCategory(ns.settingsCategoryID)
             end
         elseif cmd == "check" then
-            local warnings = CheckPoisons()
-            if warnings and #warnings > 0 then
-                PrintWarnings(warnings)
-            else
-                PrintAllClear()
-            end
+            PrintStatus()
         else
             print(CHAT_PREFIX .. "Commands:")
             print("  /pp check   — Check poison status now")
@@ -933,10 +968,10 @@ RegisterEvent("PLAYER_ENTERING_WORLD", function(self, event, isLogin, isReload)
 end)
 
 -- ============================================================================
--- UNIT_INVENTORY_CHANGED — weapon enchant applied/removed
+-- UNIT_AURA — poison buff applied/removed
 -- ============================================================================
 
-RegisterEvent("UNIT_INVENTORY_CHANGED", function(self, event, unit)
+RegisterEvent("UNIT_AURA", function(self, event, unit)
     if unit ~= "player" then return end
     if not isRogue or not ns.db or not ns.db.enabled then return end
 
@@ -949,22 +984,18 @@ RegisterEvent("UNIT_INVENTORY_CHANGED", function(self, event, unit)
 end)
 
 -- ============================================================================
--- Expiry Ticker — periodic check for expiring poisons
+-- Periodic Check — safety net for edge cases
 -- ============================================================================
 
 RegisterEvent("PLAYER_LOGIN", function()
     if not isRogue then return end
     UnregisterEvent("PLAYER_LOGIN")
 
-    ns.expiryTicker = C_Timer.NewTicker(30, function()
+    ns.checkTicker = C_Timer.NewTicker(60, function()
         if not ns.db or not ns.db.enabled then return end
         local warnings = CheckPoisons()
         if warnings and #warnings > 0 then
-            for _, msg in ipairs(warnings) do
-                if msg:find("expires in") then
-                    print(CHAT_PREFIX .. "|cffffcc00" .. msg .. "|r")
-                end
-            end
+            PrintWarnings(warnings)
         end
     end)
 end)
@@ -984,12 +1015,7 @@ function PoisonPal_OnCompartmentClick(addonName, buttonName)
             Settings.OpenToCategory(ns.settingsCategoryID)
         end
     else
-        local warnings = CheckPoisons()
-        if warnings and #warnings > 0 then
-            PrintWarnings(warnings)
-        else
-            PrintAllClear()
-        end
+        PrintStatus()
     end
 end
 
@@ -998,20 +1024,18 @@ function PoisonPal_OnCompartmentEnter(addonName, menuButtonFrame)
     GameTooltip:SetText("PoisonPal")
 
     if isRogue then
-        local hasMainHand, mainExp, _, _, hasOffHand, offExp = GetWeaponEnchantInfo()
+        local lethal, nonLethal = GetPoisonStatus()
 
-        if hasMainHand then
-            local mins = math.floor((mainExp or 0) / 60000)
-            GameTooltip:AddLine("Main hand: poisoned (" .. mins .. "m)", 0, 1, 0)
+        if lethal then
+            GameTooltip:AddLine("Lethal: " .. lethal, 0, 1, 0)
         else
-            GameTooltip:AddLine("Main hand: NO POISON", 1, 0.4, 0)
+            GameTooltip:AddLine("Lethal: NONE", 1, 0.4, 0)
         end
 
-        if hasOffHand then
-            local mins = math.floor((offExp or 0) / 60000)
-            GameTooltip:AddLine("Off hand: poisoned (" .. mins .. "m)", 0, 1, 0)
+        if nonLethal then
+            GameTooltip:AddLine("Non-lethal: " .. nonLethal, 0, 1, 0)
         else
-            GameTooltip:AddLine("Off hand: NO POISON", 1, 0.4, 0)
+            GameTooltip:AddLine("Non-lethal: NONE", 1, 0.4, 0)
         end
 
         GameTooltip:AddLine(" ")
@@ -1067,25 +1091,6 @@ function ns:RegisterSettings()
         end)
     end
 
-    -- Warning Threshold
-    do
-        local setting = Settings.RegisterAddOnSetting(category,
-            "PoisonPal_Threshold",
-            "warningThreshold",
-            ns.db,
-            type(1),
-            "Warning Threshold (sec)",
-            ns.defaults.warningThreshold
-        )
-        local options = Settings.CreateSliderOptions(60, 600, 30)
-        options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)
-        Settings.CreateSlider(category, setting, options,
-            "Warn when poison has fewer than this many seconds remaining.")
-        setting:SetValueChangedCallback(function(_, newValue)
-            ns.db.warningThreshold = newValue
-        end)
-    end
-
     -- Play Sound
     do
         local setting = Settings.RegisterAddOnSetting(category,
@@ -1097,7 +1102,7 @@ function ns:RegisterSettings()
             ns.defaults.playSound
         )
         Settings.CreateCheckbox(category, setting,
-            "Play the raid warning sound when poisons are missing or expiring.")
+            "Play the raid warning sound when poisons are missing.")
     end
 
     -- Check on Login
@@ -1130,12 +1135,21 @@ This tutorial covered the core building blocks of modern WoW addon development:
 | **Namespace pattern** | `local addonName, ns = ...` for cross-file communication |
 | **Event dispatch** | Table-dispatch pattern with `RegisterEvent` / `UnregisterEvent` helpers |
 | **Initialization order** | `ADDON_LOADED` for DB, `PLAYER_LOGIN` for features, `PLAYER_ENTERING_WORLD` for world state |
-| **Weapon enchant API** | `GetWeaponEnchantInfo()` for poison detection |
+| **Aura detection API** | `C_UnitAuras.GetPlayerAuraBySpellID()` for poison buff detection |
 | **Timer API** | `C_Timer.After()` for delays, `C_Timer.NewTicker()` for periodic checks |
-| **Settings API** | `RegisterVerticalLayoutCategory`, `RegisterAddOnSetting`, `CreateCheckbox`, `CreateSlider` |
+| **Settings API** | `RegisterVerticalLayoutCategory`, `RegisterAddOnSetting`, `CreateCheckbox` |
 | **Addon Compartment** | TOC fields + global callback functions for minimap dropdown integration |
 | **Slash commands** | `SLASH_NAME1` globals + `SlashCmdList` handler |
 | **Publishing** | `.pkgmeta` + GitHub Actions + BigWigsMods/packager |
+
+### Common AI Mistakes This Tutorial Avoids
+
+| Mistake | Why It's Wrong | What We Did Instead |
+|---------|---------------|-------------------|
+| Using `GetWeaponEnchantInfo()` for poisons | Poisons are player buffs since Dragonflight, not weapon enchants | `C_UnitAuras.GetPlayerAuraBySpellID()` |
+| Listening to `UNIT_INVENTORY_CHANGED` | Equipment events don't fire for buff changes | `UNIT_AURA` event |
+| Tracking poison expiry timers | Modern poisons are permanent until cancelled | Check presence/absence only |
+| Using `InterfaceOptionsCheckButtonTemplate` | Deprecated since Dragonflight | Modern Settings API |
 
 ### Next Steps
 
