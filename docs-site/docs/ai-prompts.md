@@ -214,7 +214,7 @@ WoW Lua 5.1, Interface 120001 (Midnight). Use C_ namespace APIs.
         -- Boolean setting
         do
             local variable = Settings.RegisterProxySetting(category,
-                addonName .. "_Enabled", Settings.VarType.Boolean,
+                addonName .. "_Enabled", type(true),
                 "Enable Addon", ns.db.enabled,
                 function() return ns.db.enabled end,
                 function(value) ns.db.enabled = value end
@@ -225,7 +225,7 @@ WoW Lua 5.1, Interface 120001 (Midnight). Use C_ namespace APIs.
         -- Slider setting
         do
             local variable = Settings.RegisterProxySetting(category,
-                addonName .. "_Scale", Settings.VarType.Number,
+                addonName .. "_Scale", type(1.0),
                 "UI Scale", ns.db.scale,
                 function() return ns.db.scale end,
                 function(value)

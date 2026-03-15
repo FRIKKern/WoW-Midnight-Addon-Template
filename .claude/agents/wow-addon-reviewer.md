@@ -82,9 +82,9 @@ Use `bit.band()`, `bit.bor()`, etc. for bitwise operations.
 #### C4. CLEU / Combat Log Registration
 `COMBAT_LOG_EVENT_UNFILTERED` and `CombatLogGetCurrentEventInfo()` are **removed entirely** in 12.0. Flag any:
 
-- `RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")` used for addon logic
-- `CombatLogGetCurrentEventInfo()` calls without secret value guards
-- Any code that parses CLEU return values as if they were real numbers
+- `RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")` — removed event, handler will never fire
+- `CombatLogGetCurrentEventInfo()` — removed function, will error at runtime
+- Any CLEU sub-event parsing (SPELL_DAMAGE, SPELL_HEAL, etc.) — migrate to unit events
 
 **Correct alternatives:** `UNIT_HEALTH`, `UNIT_AURA`, `UNIT_SPELLCAST_SUCCEEDED`, `UNIT_POWER_UPDATE`
 

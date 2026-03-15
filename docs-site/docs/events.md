@@ -168,7 +168,7 @@ ADDON_LOADED (fires per addon)
 | `PLAYER_ALIVE` | Player is alive (after releasing or resurrecting) | — |
 
 !!! tip
-    `COMBAT_LOG_EVENT_UNFILTERED` passes no arguments directly. Always call `CombatLogGetCurrentEventInfo()` inside the handler to get the combat log data.
+    For combat-related data in 12.0+, register unit-specific events like `UNIT_HEALTH`, `UNIT_AURA`, `UNIT_POWER_UPDATE`, and `UNIT_COMBAT` using `RegisterUnitEvent()` for better performance.
 
 ### Units
 

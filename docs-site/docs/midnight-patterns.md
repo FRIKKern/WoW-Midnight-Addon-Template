@@ -1124,7 +1124,7 @@ local function CreateSettingsPanel()
 
         local setting = Settings.RegisterAddOnSetting(
             category, variable, variable, ns.db,
-            Settings.VarType.Boolean, name, defaults[variable]
+            type(true), name, defaults[variable]
         )
         setting:SetValueChangedCallback(function(_, val)
             ns.db[variable] = val
@@ -1141,7 +1141,7 @@ local function CreateSettingsPanel()
 
         local setting = Settings.RegisterAddOnSetting(
             category, variable, variable, ns.db,
-            Settings.VarType.Boolean, name, defaults[variable]
+            type(true), name, defaults[variable]
         )
         setting:SetValueChangedCallback(function(_, val)
             ns.db[variable] = val
@@ -1158,7 +1158,7 @@ local function CreateSettingsPanel()
 
         local setting = Settings.RegisterAddOnSetting(
             category, variable, variable, ns.db,
-            Settings.VarType.Number, name, defaults[variable]
+            type(1.0), name, defaults[variable]
         )
         setting:SetValueChangedCallback(function(_, val)
             ns.db[variable] = val
@@ -1181,7 +1181,7 @@ local function CreateSettingsPanel()
 
         local setting = Settings.RegisterAddOnSetting(
             category, variable, variable, ns.db,
-            Settings.VarType.Number, name, defaults[variable]
+            type(1.0), name, defaults[variable]
         )
         setting:SetValueChangedCallback(function(_, val)
             ns.db[variable] = val
@@ -1213,7 +1213,7 @@ local function CreateSettingsPanel()
 
         local setting = Settings.RegisterAddOnSetting(
             category, variable, variable, ns.db,
-            Settings.VarType.String, name, defaults[variable]
+            type(""), name, defaults[variable]
         )
         setting:SetValueChangedCallback(function(_, val)
             ns.db[variable] = val

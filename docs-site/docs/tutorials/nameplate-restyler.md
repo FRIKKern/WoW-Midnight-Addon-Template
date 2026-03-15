@@ -1204,7 +1204,7 @@ local function InitSettings()
 
     local function AddToggle(variable, name, tooltip, default)
         local setting = Settings.RegisterAddOnSetting(
-            category, variable, variable, ns.db, Settings.VarType.Boolean,
+            category, variable, variable, ns.db, type(true),
             name, default
         )
         Settings.CreateCheckbox(category, setting, tooltip)

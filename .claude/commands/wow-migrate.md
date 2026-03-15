@@ -45,8 +45,8 @@ Scan for these REMOVED functions and flag each occurrence with file, line, and r
 | `HasOverrideActionBar()` | `C_ActionBar.HasOverrideActionBar()` | 12.0 |
 | `CancelEmote()` | Removed | 12.0 |
 | `SetRaidTargetProtected()` | Removed | 12.0 |
-| `CombatLogAddFilter()` | Removed — use C_CombatLog | 12.0 |
-| `CombatLogResetFilter()` | Removed — use C_CombatLog | 12.0 |
+| `CombatLogAddFilter()` | Removed — no replacement | 12.0 |
+| `CombatLogResetFilter()` | Removed — no replacement | 12.0 |
 | `CombatLogClearEntries()` | `C_CombatLog.ClearEntries()` | 12.0 |
 | `SpellIsAlwaysShown()` | Removed | 12.0 |
 | `SpellIsPriorityAura()` | Removed | 12.0 |
@@ -61,7 +61,7 @@ Search for patterns that indicate CLEU dependency:
 - `CombatLogGetCurrentEventInfo()` calls
 - Combat log sub-event parsing (SPELL_DAMAGE, SPELL_HEAL, etc.)
 
-If found, flag as **CRITICAL** — CLEU returns Secret Values in instances. Suggest migration:
+If found, flag as **CRITICAL** — CLEU was removed entirely in 12.0. Suggest migration:
 - For damage tracking → `C_DamageMeter` API
 - For heal tracking → `UNIT_HEALTH` + `UnitIsDeadOrGhost()`
 - For aura tracking → `UNIT_AURA` + `C_UnitAuras.GetAuraDataByIndex()`

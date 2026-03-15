@@ -831,7 +831,7 @@ The rules are:
 | OnUpdate tables | `local t = {}` per frame | Pre-allocate, reuse with `wipe()` |
 | Lua version | 5.2+ syntax (`goto`, `//`, `&`) | Lua 5.1 + `bit` library |
 | SetTexCoord | `left, top, right, bottom` | `left, right, top, bottom` |
-| Combat log | `...` args from event | `CombatLogGetCurrentEventInfo()` |
+| Combat log | CLEU / `CombatLogGetCurrentEventInfo()` | Removed in 12.0 — use `UNIT_HEALTH`, `UNIT_AURA`, etc. |
 | Async APIs | Assume non-nil return | Nil-check + request/event |
 | Ordered iteration | `pairs()` | `ipairs()` |
 | Frame names | `"MainFrame"` | `"MyAddonMainFrame"` or `nil` |
