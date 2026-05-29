@@ -18,13 +18,10 @@ No existing addon template targets Midnight 12.0+. Ours does. It ships with the 
 | File | Purpose |
 |------|---------|
 | `MyAddon.toc` | Addon manifest — Interface `120001`, SavedVariables, load order |
-| `Core.lua` | Entry point — namespace setup, event dispatcher, initialization |
-| `Config.lua` | SavedVariables defaults, migration system, settings panel |
-| `Events.lua` | Event handler registrations, combat deferral utilities |
-| `UI.lua` | Frame creation, layout, skinning helpers |
-| `Utils.lua` | Shared utilities, secret value helpers |
-| `Locales/enUS.lua` | Localization strings |
-| `Libs/embeds.xml` | Library loader (LibStub, CallbackHandler, AceDB) |
+| `Init.lua` | First-loaded file — namespace setup, table-dispatch event dispatcher, SavedVariables init, `ADDON_LOADED`/`PLAYER_LOGIN` handlers, slash commands |
+| `Core.lua` | Feature logic, frame creation, combat queue, secret value helpers |
+| `Config.lua` | Settings panel registration (modern Blizzard Settings API) |
+| `Libs/` | Library loader (LibStub, CallbackHandler) |
 | `.pkgmeta` | BigWigsMods/packager config — library externals, packaging rules |
 | `.luacheckrc` | Luacheck config with WoW API globals |
 | `.luarc.json` | VS Code LuaLS config for IntelliSense |
@@ -46,15 +43,12 @@ MyAddon/
 │   ├── extensions.json          # Recommends ketho.wow-api + StyLua
 │   └── settings.json            # LuaLS Lua 5.1 config
 ├── Libs/                        # Populated by .pkgmeta at build time
-│   └── embeds.xml               # XML library loader
-├── Locales/
-│   └── enUS.lua                 # English strings
-├── MyAddon.toc                  # Interface: 120001
-├── Core.lua                     # Namespace + init + event dispatch
-├── Config.lua                   # SavedVariables + defaults + migration
-├── Events.lua                   # Event registrations + combat deferral
-├── UI.lua                       # Frames + skinning helpers
-├── Utils.lua                    # Utilities + secret value helpers
+│   ├── LibStub/                 # Library version registry
+│   └── CallbackHandler-1.0/     # Event callback library
+├── MyAddon.toc                  # Interface: 120001 (loads Init → Core → Config)
+├── Init.lua                     # Namespace + event dispatch + ADDON_LOADED/PLAYER_LOGIN + slash commands
+├── Core.lua                     # Feature logic + frame creation + combat queue
+├── Config.lua                   # Settings panel registration
 ├── CLAUDE.md                    # AI coding instructions
 ├── .cursorrules                 # Cursor IDE instructions
 ├── .luacheckrc                  # Lua linter config
@@ -86,16 +80,13 @@ The manifest that tells WoW how to load your addon.
 ## X-Wago-ID: aBcDeFgH
 
 #@no-lib-strip@
-Libs\embeds.xml
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 #@end-no-lib-strip@
 
-Locales\enUS.lua
-
+Init.lua
 Core.lua
-Utils.lua
 Config.lua
-Events.lua
-UI.lua
 ```
 
 !!! info "`@project-version@`"
@@ -104,150 +95,126 @@ UI.lua
 !!! info "`#@no-lib-strip@`"
     Tells the packager to strip library loading lines from the `-nolib` zip variant. Users who have standalone library addons installed won't double-load.
 
-#### Core.lua — The Entry Point
+#### Init.lua — Namespace, Events & Slash Commands
+
+`Init.lua` is loaded **first** (after libraries, per the `.toc`). It sets up the
+shared namespace, a hand-rolled table-dispatch event dispatcher, SavedVariables
+init, and the slash commands. No `EventUtil.ContinueOnAddOnLoaded` — the template
+uses a plain `ADDON_LOADED` handler on a hidden event frame so the pattern stays
+transparent and dependency-free.
 
 ```lua
 local addonName, ns = ...
 
--- ─── Version detection ───────────────────────────────────
-ns.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-ns.isMidnight = ns.isRetail and (select(4, GetBuildInfo()) >= 120000)
-
--- ─── Addon version ───────────────────────────────────────
-ns.version = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
-
--- ─── Slash command ───────────────────────────────────────
-SLASH_MYADDON1 = "/myaddon"
-SlashCmdList["MYADDON"] = function(msg)
-    local cmd = strlower(strtrim(msg))
-    if cmd == "config" or cmd == "options" then
-        Settings.OpenToCategory(addonName)
-    else
-        print("|cff00ccff" .. addonName .. "|r v" .. ns.version)
-        print("  /myaddon config — Open settings")
-    end
-end
-
--- ─── Initialization via EventUtil (modern 12.0 pattern) ──
-EventUtil.ContinueOnAddOnLoaded(addonName, function()
-    ns.InitDB()          -- Config.lua
-    ns.InitEvents()      -- Events.lua
-    ns.InitUI()          -- UI.lua
-    print("|cff00ccff" .. addonName .. "|r v" .. ns.version .. " loaded.")
-end)
-```
-
-#### Utils.lua — Secret Value Helpers
-
-```lua
-local addonName, ns = ...
-
--- ─── Secret Values (Midnight 12.0) ──────────────────────
+-- ─── Secret Value helper (Midnight 12.0) ─────────────────
 ns.SECRETS_ENABLED = type(issecretvalue) == "function"
-
 function ns.SafeValue(val, fallback)
-    if ns.SECRETS_ENABLED and issecretvalue(val) then
-        return fallback
-    end
+    if ns.SECRETS_ENABLED and issecretvalue(val) then return fallback end
     return val
 end
 
+-- ─── Table-dispatch event dispatcher ─────────────────────
+local eventFrame = CreateFrame("Frame")
+local eventHandlers = {}
+eventFrame:SetScript("OnEvent", function(self, event, ...)
+    local handler = eventHandlers[event]
+    if handler then handler(self, event, ...) end
+end)
+local function RegisterEvent(event, handler)
+    eventHandlers[event] = handler
+    eventFrame:RegisterEvent(event)
+end
+ns.RegisterEvent = RegisterEvent
+
+-- ─── ADDON_LOADED: SavedVariables init + slash commands ──
+RegisterEvent("ADDON_LOADED", function(self, event, loadedAddon)
+    if loadedAddon ~= addonName then return end
+    eventFrame:UnregisterEvent("ADDON_LOADED")
+
+    MyAddonDB = MyAddonDB or {}
+    for key, defaultValue in pairs(ns.defaults) do
+        if MyAddonDB[key] == nil then MyAddonDB[key] = defaultValue end
+    end
+    ns.db = MyAddonDB
+
+    SLASH_MYADDON1 = "/myaddon"
+    SlashCmdList["MYADDON"] = function(input)
+        local cmd = strlower(strtrim(input or ""))
+        if cmd == "config" or cmd == "options" then
+            if ns.settingsCategoryID then Settings.OpenToCategory(ns.settingsCategoryID) end
+        elseif cmd == "toggle" then
+            ns.db.enabled = not ns.db.enabled
+        elseif cmd == "reset" then
+            for key, value in pairs(ns.defaults) do ns.db[key] = value end
+        else
+            print("/myaddon config — Open settings")
+            print("/myaddon toggle — Enable/disable")
+            print("/myaddon reset  — Reset settings to defaults")
+        end
+    end
+
+    if ns.RegisterSettings then ns:RegisterSettings() end
+end)
+
+-- ─── PLAYER_LOGIN: start features once the world is ready ─
+RegisterEvent("PLAYER_LOGIN", function()
+    if ns.db.enabled and ns.Enable then ns:Enable() end
+end)
+```
+
+!!! info "Why `PLAYER_LOGIN`, not `PLAYER_ENTERING_WORLD`?"
+    `PLAYER_LOGIN` fires exactly once per session. `PLAYER_ENTERING_WORLD` fires on
+    every loading screen (portals, instances). Create UI in `PLAYER_LOGIN`.
+
+#### Core.lua — Feature Logic & Combat Safety
+
+`Core.lua` holds the addon's actual behaviour — frame creation, hooks, and a
+combat-deferral queue. It reads `ns.db` (set up by `Init.lua`) and exposes
+`ns:Enable()`/`ns:Disable()`.
+
+```lua
+local addonName, ns = ...
+
 -- ─── Combat deferral ─────────────────────────────────────
 ns.combatQueue = {}
-
 function ns.AfterCombat(fn)
     if InCombatLockdown() then
-        table.insert(ns.combatQueue, fn)
+        ns.combatQueue[#ns.combatQueue + 1] = fn
     else
         fn()
     end
 end
 
-function ns.FlushCombatQueue()
-    for _, fn in ipairs(ns.combatQueue) do
-        fn()
-    end
+ns.RegisterEvent("PLAYER_REGEN_ENABLED", function()
+    for _, fn in ipairs(ns.combatQueue) do fn() end
     wipe(ns.combatQueue)
+end)
+
+function ns:Enable()
+    -- Build frames, register gameplay events, start timers.
 end
 
--- ─── Debounce ────────────────────────────────────────────
-function ns.Debounce(delay, fn)
-    local timer
-    return function(...)
-        if timer then timer:Cancel() end
-        local args = {...}
-        timer = C_Timer.NewTimer(delay, function()
-            fn(unpack(args))
-        end)
-    end
+function ns:Disable()
+    -- Tear down / hide what Enable created.
 end
 ```
 
-#### Config.lua — SavedVariables with Migration
+#### Config.lua — Settings Panel
+
+`Config.lua` registers the addon's options page with the modern Blizzard Settings
+API and wires up the Addon Compartment callbacks. SavedVariables defaults live in
+`ns.defaults` (defined in `Init.lua`) — `Config.lua` only builds the UI.
 
 ```lua
 local addonName, ns = ...
 
-ns.DEFAULTS = {
-    enabled = true,
-    scale = 1.0,
-    position = { point = "CENTER", x = 0, y = 0 },
-    theme = "dark",
-    _version = 1,
-}
-
-function ns.InitDB()
-    -- Merge saved data with defaults
-    MyAddonDB = MyAddonDB or {}
-    for key, default in pairs(ns.DEFAULTS) do
-        if MyAddonDB[key] == nil then
-            if type(default) == "table" then
-                MyAddonDB[key] = CopyTable(default)
-            else
-                MyAddonDB[key] = default
-            end
-        end
-    end
-    ns.db = MyAddonDB
-    ns.MigrateDB()
-end
-
-function ns.MigrateDB()
-    local db = ns.db
-    -- v2: example migration
-    if (db._version or 1) < 2 then
-        -- Rename old keys, restructure data, etc.
-        db._version = 2
-    end
-end
-
 -- ─── Settings panel (Blizzard Settings API) ──────────────
-function ns.RegisterSettings()
+function ns:RegisterSettings()
     local category = Settings.RegisterCanvasLayoutCategory(
         ns.CreateSettingsPanel(), addonName
     )
     Settings.RegisterAddOnCategory(category)
-end
-```
-
-#### Events.lua — Event Handling + Combat Safety
-
-```lua
-local addonName, ns = ...
-
-function ns.InitEvents()
-    -- Flush combat queue when combat ends
-    EventRegistry:RegisterFrameEventAndCallback(
-        "PLAYER_REGEN_ENABLED", ns.FlushCombatQueue
-    )
-
-    -- Example: react to bag updates with debounce
-    local debouncedRefresh = ns.Debounce(0.05, function()
-        if ns.RefreshUI then ns.RefreshUI() end
-    end)
-    EventRegistry:RegisterFrameEventAndCallback(
-        "BAG_UPDATE_DELAYED", debouncedRefresh
-    )
+    ns.settingsCategoryID = category:GetID()
 end
 ```
 
@@ -575,7 +542,7 @@ Plater/
 |---------|:--------:|:---------:|:------:|:------:|:----------------:|
 | Interface `120001` | :white_check_mark: | :x: | :x: | :x: | :x: |
 | Secret Values awareness | :white_check_mark: | :x: | :x: | :x: | :x: |
-| EventUtil init pattern | :white_check_mark: | :x: | :x: | :x: | :x: |
+| Table-dispatch event pattern | :white_check_mark: | :x: | :x: | :x: | :x: |
 | BigWigsMods/packager CI | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :x: |
 | Luacheck linting | :white_check_mark: | :x: | :white_check_mark: | :x: | :x: |
 | `.luarc.json` (VS Code) | :white_check_mark: | :x: | :x: | :x: | :x: |
@@ -631,13 +598,10 @@ The `CLAUDE.md` file is your **behavioral specification** for AI. It's the diffe
 ## Architecture
 
 ### File Load Order (defined in .toc):
-1. Libs/embeds.xml — External libraries
-2. Locales/enUS.lua — Strings
-3. Core.lua — Namespace + init
-4. Utils.lua — Shared utilities
-5. Config.lua — SavedVariables + defaults
-6. Events.lua — Event handlers
-7. UI.lua — Frame creation
+1. Libs/ — External libraries (LibStub, CallbackHandler)
+2. Init.lua — Namespace + event dispatcher + ADDON_LOADED/PLAYER_LOGIN + slash commands
+3. Core.lua — Feature logic + frame creation + combat queue
+4. Config.lua — Settings panel registration
 
 ### Namespace Pattern:
 local addonName, ns = ...
@@ -679,8 +643,8 @@ Claude reads CLAUDE.md → knows the namespace pattern, load order, 12.0 APIs
 Claude reads Config.lua → sees existing settings panel registration
      ↓
 Claude adds LibDBIcon to .pkgmeta externals
-Claude updates embeds.xml to load LibDBIcon
-Claude adds minimap button code to UI.lua using ns.db for toggle state
+Claude adds the LibDBIcon load line to MyAddon.toc
+Claude adds minimap button code to Core.lua using ns.db for toggle state
 Claude updates .luacheckrc with new globals
      ↓
 You: /reload → it works
@@ -842,9 +806,9 @@ Find and replace these strings across all files:
 ### Step 3: Customize
 
 1. **Edit the TOC** — update Title, Notes, Author
-2. **Edit Core.lua** — change the slash command, add your init logic
-3. **Edit Config.lua** — define your default settings
-4. **Edit UI.lua** — build your frames
+2. **Edit Init.lua** — change the slash commands and edit `ns.defaults` for your settings
+3. **Edit Core.lua** — add your feature logic and build your frames in `ns:Enable()`
+4. **Edit Config.lua** — wire up your settings panel
 5. **Update `.luacheckrc`** — add your global names
 
 ### Step 4: Set Up Dev Environment

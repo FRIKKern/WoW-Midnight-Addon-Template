@@ -1,5 +1,7 @@
 # Cutting Edge: What's Pushing Boundaries Right Now
 
+> 📅 Historical snapshot (March 2026) — addon-ecosystem state in early Midnight; kept as a point-in-time record.
+
 !!! abstract "March 2026 -- Dispatches from the addon trenches"
     Midnight launched on March 2, 2026 with what the community has dubbed **"The Great Addon Purge of 2026"** -- the most aggressive set of addon API restrictions in WoW's 20-year history. Game Director Ion Hazzikostas formally called it **"Addon Disarmament."** Some addons adapted. Some refused. Some died. And a few new ones were born from the wreckage. Here's where the front lines are right now.
 

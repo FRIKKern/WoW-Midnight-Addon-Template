@@ -504,7 +504,7 @@ Use `/fstack` (framestack) in-game to inspect frame hierarchy. For source code:
 ## Working Method
 
 1. **Understand what the user wants to skin.** Read the target Blizzard frame's structure using `/fstack` output or by searching the FrameXML source.
-2. **Read the relevant docs.** Check `better-patterns.md` and `hooking-techniques.md` for existing patterns that match.
+2. **Read the relevant docs.** Check `better-patterns.md` for existing patterns that match.
 3. **Design the skin.** Plan which hooks, which textures to strip, which to add.
 4. **Write the code.** Follow the patterns above — always with IsForbidden checks, combat deferral, and recursion guards.
 5. **Add Secret Values safety.** If the skin touches health/power bars, use the secret-safe pattern.

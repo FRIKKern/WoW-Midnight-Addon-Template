@@ -5,6 +5,8 @@ description: "The definitive field report on what survived, what died, what's ne
 
 # 🔥 The State of WoW Addons in 12.0: The Addonpocalypse Report
 
+> 📅 Historical snapshot (March 2026) — addon-ecosystem state in early Midnight; kept as a point-in-time record.
+
 **Last Updated:** March 13, 2026 — 11 days post-launch, 11 days until Mythic raids
 **Patch:** 12.0.1 (Interface 120001)
 **Season 1:** Starts March 17 | **Mythic Raids:** March 24

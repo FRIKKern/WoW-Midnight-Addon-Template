@@ -18,6 +18,7 @@
 - `/myaddon` — show help
 - `/myaddon config` — open settings
 - `/myaddon toggle` — enable/disable
+- `/myaddon reset` — reset settings to defaults
 - Find **MyAddon** in the minimap Addon Compartment dropdown
 
 ## Configuration

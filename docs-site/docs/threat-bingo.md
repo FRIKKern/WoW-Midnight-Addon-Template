@@ -5,6 +5,8 @@ description: "11 days into WoW Midnight 12.0 — verified addon casualties, what
 
 # :game_die: Threat Bingo: The Midnight Reality Check
 
+> 📅 Historical snapshot (March 2026) — addon-ecosystem state in early Midnight; kept as a point-in-time record.
+
 !!! danger "This is NOT speculation. We are 11 days into Patch 12.0."
     **WoW: Midnight launched March 2, 2026.** The Addonpocalypse already happened. The bodies are on the ground. This page tracks what's confirmed dead, what survived, what's coming next, and which addons are living on borrowed time.
 

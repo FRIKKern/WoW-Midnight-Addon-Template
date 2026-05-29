@@ -244,8 +244,7 @@ Before going to the web, check the project's existing documentation. These files
 | `docs-site/docs/midnight-patterns.md` | Midnight coding patterns with complete examples |
 | `docs-site/docs/midnight.md` | What changed in 12.0, Secret Values overview |
 | `docs-site/docs/lua-api.md` | C_ namespace reference, Secret Values API |
-| `docs-site/docs/better-patterns.md` | 10 battle-tested patterns from real addons |
-| `docs-site/docs/hooking-techniques.md` | Complete hooking reference |
+| `docs-site/docs/better-patterns.md` | 10 battle-tested patterns from real addons, including the complete hooking reference |
 | `docs-site/docs/blizzard-systems.md` | Blizzard native UI systems |
 | `docs-site/docs/security.md` | Taint and protected function rules |
 | `docs-site/docs/toc-format.md` | TOC file specification |
